@@ -35,7 +35,7 @@ function mfShape(C, B){ return B != null ? {C:1, B, N:1} : {C, B:Math.tan(Math.P
 function mf(s, sh){ return Math.sin(sh.C*Math.atan(sh.B*s))/sh.N; }
 
 /* ---------- Aid constants (estimates: generic logic, not any maker's) ---------- */
-const ABS_C = {UP:25, DN:40, LAM_HI:.105, LAM_LO:.095, DLAM:10, VMIN:1.0};
+const ABS_C = {UP:25, DN:40, LAM_HI:.105, LAM_LO:.095, DLAM:10, VMIN:1.0, AREL:15, ATAU:.01};
 const ESC_C = {K:8, DB:.035, DBK:.08, AY_MARGIN:1.0, VMIN:3, THR_CUT:.25};
 const TCS_C = {SV:1.0, SVK:.08, K:.15, MAX:.35, VMIN:0};
 const DRV_C = {CREEP:.03, VCREEP:1.7, KAWD:5, K4:.2};
@@ -200,7 +200,11 @@ function createSim(o){
           // Like a real unit, it stops releasing once the wheel is spinning back up (slip falling), and stops
           // reapplying once the wheel is already slowing (slip rising).
           const lam = (ref - w.om*R)/ref, dl = lam - (w.lam == null ? lam : w.lam); w.lam = lam;
-          if (lam > ABS_C.LAM_HI){ if (dl > -ABS_C.DLAM*DT){ w.p = Math.max(0, w.p - ABS_C.DN*DT); w.mode = 1; } else w.mode = 2; }
+          // Filtered wheel deceleration (m/s² at the tread): a sharp drop signals lock-up before the slip threshold
+          w.aw = (w.aw || 0) + (((w.om - w.omPrev)/DT*R) - (w.aw || 0))*DT/ABS_C.ATAU;
+          const decelTrip = ABS_C.AREL > 0 && -w.aw > ABS_C.AREL && lam > .5*ABS_C.LAM_LO && dl > 0;
+          if (decelTrip && lam <= ABS_C.LAM_HI){ w.p = Math.max(0, w.p - ABS_C.DN*DT); w.mode = 1; }
+          else if (lam > ABS_C.LAM_HI){ if (dl > -ABS_C.DLAM*DT){ w.p = Math.max(0, w.p - ABS_C.DN*DT); w.mode = 1; } else w.mode = 2; }
           else if (lam < ABS_C.LAM_LO){ if (dl < ABS_C.DLAM*DT){ w.p = Math.min(1, w.p + ABS_C.UP*DT); w.mode = 0; } else w.mode = 2; }
           else w.mode = 2;
           if (w.p < 1){ w.absAct = true; st.abs = true; }

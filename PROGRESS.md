@@ -37,9 +37,10 @@ Built: js/grip.js (v1 tables + legacy stopRun, verbatim), js/physics.js (4-wheel
 implicit wheel spin, combined-slip Magic Formula, filtered load transfer, gravity from road gradient per wheel, engine +
 automatic + creep, FWD/RWD/AWD/4x4, brakes + EBD, slip-band ABS, ESC, TCS, crosswind, ploughing drag),
 js/vehicles.js (INTERIM estimates), scripts/calibrate.js -> js/tire-params.js + docs/CALIBRATION.md, test/physics.test.js.
-Last `npm test`: 11 pass, 1 fail (test 1 only: gravel x winter ABS). `npm run calibrate` is deterministic (byte-identical re-run).
+Last `npm test`: 12 of 12 pass (2026-10-29 23:0x UTC). `npm run calibrate` is deterministic (byte-identical re-run).
 Resume here, in this order:
-1. Test 1 fails only on gravel x winter ABS: -2.01% at 19 km/h, +2.05% at 100 km/h (limit 2%). Spread across speeds is 4%;
+1. FIXED: added a filtered wheel-deceleration release trigger to ABS (15 m/s², 10 ms filter); calibration now
+   passes everywhere, worst gravel 1.9% (thin margin). History: test 1 failed only on gravel x winter ABS: -2.01% at 19 km/h, +2.05% at 100 km/h (limit 2%). Spread across speeds is 4%;
    likely cause: at the start of each stop the ABS overshoots into lock, and on gravel a locked tire grips MORE, which helps
    short stops most. Lowering the ABS cut-off speed to 0.5 m/s changed nothing (reverted). Faster release (ABS_C.DN)
    trades gravel against fresh snow: DN 40 (current) gravel/winter +2.05%; DN 60 fresh/allweather +2.1%; DN 75

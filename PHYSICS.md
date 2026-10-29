@@ -71,8 +71,8 @@ a locked or sliding tire pushes straight back along its sliding direction and **
 - Pedal → torque; full pedal = 1.5 m g R total (*estimate*: enough to lock all four on dry).
 - ABS off: fixed 70/30 front split (*estimate*), so the fronts lock first; locked rears make the car spin (test 5).
 - ABS on: electronic brake-force distribution (ideal split for the measured deceleration) plus per-wheel slip-band
-  control: release above 10.5% slip, reapply below 9.5%, hold if the slip is already moving the right way fast;
-  off below 1 m/s (*estimates*).
+  control: release above 10.5% slip or when the filtered wheel deceleration passes 15 m/s² (lock-up coming),
+  reapply below 9.5%, hold if the slip is already moving the right way fast; off below 1 m/s (*estimates*).
 - ESC: target yaw rate from the steering angle (bicycle model with a stored understeer gradient), limited by the
   friction the lateral accelerometer shows. Too much yaw → brake the outside front; too little → brake the inside
   rear; engine torque cut. It uses only steering angle, yaw rate, lateral acceleration and speed; never the surface μ.
