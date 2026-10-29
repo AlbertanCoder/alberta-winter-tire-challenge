@@ -9,5 +9,8 @@
     "calibrate": "node scripts/calibrate.js",
     "validate": "node scripts/validate.js"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.64.1"
+  }
 }

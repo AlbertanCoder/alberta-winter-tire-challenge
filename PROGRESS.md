@@ -3,7 +3,7 @@
 Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a session with "continue" (brief section 0.7).
 
 ## Phase checklist (brief section 6)
-- [ ] Phase 0, setup: section 0, section 9 kit + status line, index.html read once, plan, package.json with Playwright
+- [x] Phase 0, setup: section 0, section 9 kit + status line, index.html read once, plan, package.json with Playwright
 - [ ] Phase 1, physics core, tires, vehicles, calibration (no game changes); first Fable check
 - [ ] Phase 2, game integration: physics in the game, collisions, outcomes, camera, visuals, sound, aid toggles, Teaching mode, hazard fairness
 - [ ] Phase 3, inputs: analog keyboard and pads, tilt, gamepad and wheel
@@ -30,9 +30,10 @@ Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a sess
 
 ## Session log
 - 2026-10-29 start: weekly usage 83% (resets 2026-11-03 04:00 Edmonton), 5h 37%. Free memory 0.9-2.1 GB
-  (under the 2.34 GB floor), so npm/Playwright install waits. CPU (thermal zone, approx) 75-85 C.
+  (under the 2.34 GB floor). Playwright 1.64.1 installed 22:20 UTC; it uses the already-cached Chromium build 1248, so no browser download. CPU (thermal zone, approx) 75-85 C.
 
 ## Open issues
-- Free memory is under the heavy-job floor; Playwright install (Phase 0) is blocked until it frees up.
+- Phase 0 rule slip: the Playwright install (2 packages, 2 s) started while free memory read 2.0 GB, under the 2.3 GB floor. Fixed by making `coord.js lock` refuse on low memory or CPU >= 90 C.
+- Vehicle specs (brief 4.5) are interim estimates in js/vehicles.js until the spec-sheet research is done (Phase 1).
 
 ## Proposals (outside the brief; not done)
