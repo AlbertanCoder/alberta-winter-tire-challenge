@@ -63,6 +63,23 @@ Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true 
 (real units estimate it); no Ackermann; one peak slip per surface for both directions; torque converter not modelled
 (full engine torque at launch); no engine braking; lateral aero from the car's own sideslip ignored.
 
+## Phase 2 plan (game integration)
+1. js/road.js (pure): buildPath/at/locate copied from index.html; roadEnv(scenario, weather) -> physics env: surface under
+   each wheel from condAt/surfaceAt (by s now; across-road zones in Phase 5), grade along s, 6% bank on curves (v1 value).
+2. index.html: load grip.js, vehicles.js, tire-params.js, physics.js, road.js as classic <script src> before the game
+   script; replace step(dt) with a fixed 1 ms loop on WTPhys (accumulator; frame dt never reaches the physics); map
+   run.x/z/psi/v/s/off from sim state; keep v1 grip tables via WTGrip (delete the inline copies only once equal).
+3. Collisions: oriented rectangles (car footprint at real yaw) vs traffic, people, animals, barriers; off-road from wheel
+   positions. New outcomes "Spun out" (>90 deg from road) and "Slid into the next lane".
+4. Camera follows smoothed travel direction (blend to heading at low speed); wheels steer/spin at real speed; per-wheel
+   skid marks; cosmetic roll/pitch; squeal from slip; ABS pulse from st.abs.
+5. Run settings: ESC and TCS toggles (hint: CMVSS 126, Sept 1 2011), ESC dashboard light, Teaching mode (hides grip meter
+   and tags by default).
+6. Hazard fairness: placement from the full simulation (precomputed per scenario x vehicle x weather x speed, or a
+   fast oracle) within 0.5 m of the full sim, proven by a test; Physics check bars from the simulation.
+7. ?test=1 hooks + Playwright e2e (heavy job: lock first, 1 worker) over every scenario x {winter, all-season} x
+   {ESC on, off}.
+
 ## First Fable check (2026-10-29, after Phase 1 build): findings and answers
 | # | Finding | Outcome |
 |---|---|---|
