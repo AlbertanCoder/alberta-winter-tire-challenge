@@ -33,11 +33,12 @@ const iceMeas = ICE.allweather/ICE.winter;
 // ---- 2. Fit each tire x surface on the reference small car at -10 °C, new tread
 const ref = {T:-10, vehicle:'small'};
 const grip = Grip.make(fixes);
-function lockTarget(cond, kpk, C, B){ const sh = Phys.mfShape(C, B); return Phys.mf(1/kpk, sh); }
-function solveShape(cond, kpk, fWant, gravel){
+const FZ_REF = VEH.small.m*9.81/4;   // reference car's average wheel load
+function lockTarget(cond, pk, C, B){ const sh = Phys.mfShape(C, B), kind = Phys.shapeKind(grip.COND, cond); return Phys.mf(1/Phys.peakSlip(kind, pk, sh.C*sh.B/sh.N, FZ_REF), sh); }
+function solveShape(cond, pk, fWant, gravel){
   let lo = gravel ? .5 : 1.0005, hi = gravel ? 40 : 1.999;
   for (let i = 0; i < 60; i++){
-    const mid = (lo + hi)/2, f = gravel ? lockTarget(cond, kpk, 1, mid) : lockTarget(cond, kpk, mid);
+    const mid = (lo + hi)/2, f = gravel ? lockTarget(cond, pk, 1, mid) : lockTarget(cond, pk, mid);
     // non-gravel: f falls as C rises; gravel: f rises as B rises
     if (gravel ? f < fWant : f > fWant) lo = mid; else hi = mid;
   }
@@ -50,7 +51,7 @@ const surf = {};
 for (const c of CONDS) surf[c] = {};
 const params = {version:2, fixes, surf, ref};
 for (const c of CONDS){
-  const gravel = c === 'gravel', kpk = Phys.PEAK_SLIP[Phys.shapeKind(grip.COND, c)];
+  const gravel = c === 'gravel';
   for (const t of TIRES){
     const mu = grip.COND[c].mu[t];
     const sp = surf[c][t] = gravel ? {pk:mu*1.05, B:3} : {pk:mu/.9, C:1.5};
@@ -66,9 +67,9 @@ for (const c of CONDS){
       const rA = mean(ratios(params, c, t, true)), rL = mean(ratios(params, c, t, false));
       if (Math.abs(rA - 1) < .0015 && Math.abs(rL - 1) < .0015) break;
       sp.pk *= rA;
-      const fNow = gravel ? lockTarget(c, kpk, 1, sp.B) : lockTarget(c, kpk, sp.C);
+      const fNow = gravel ? lockTarget(c, sp.pk, 1, sp.B) : lockTarget(c, sp.pk, sp.C);
       const fWant = Math.min(.999, fNow*rL*(1/rA));
-      if (gravel) sp.B = solveShape(c, kpk, fWant, true); else sp.C = solveShape(c, kpk, fWant, false);
+      if (gravel) sp.B = solveShape(c, sp.pk, fWant, true); else sp.C = solveShape(c, sp.pk, fWant, false);
     }
     sp.pk = r4(sp.pk); if (gravel) sp.B = r4(sp.B); else sp.C = r4(sp.C);
   }

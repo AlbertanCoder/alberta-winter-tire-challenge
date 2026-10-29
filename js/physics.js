@@ -26,7 +26,17 @@ const TC = {
 };
 // Slip at the force peak, by surface (same value for slip ratio and tan(slip angle), so a sliding tire pushes
 // straight against its sliding direction). All estimates; ice peaks at a small slip, which is why it gives no warning.
-const PEAK_SLIP = {dry:.12, snow:.15, fresh:.2, slush:.12, ice:.06, gravel:.25};
+const PEAK_SLIP = {gravel:.25};   // gravel only (estimate); every other surface gets its peak slip from measured stiffness
+// Small-slip tire stiffness divided by vertical load (per unit slip), winter tire, at 2, 4 and 6 kN: Svendenius (2007),
+// "Validation of the Brush Model towards VTI-measurement data recorded in Arjeplog 2006", Lund University TFRT-7617,
+// Table 8 (cornering, "Norm"). Longitudinal values in its Table 5 are close (snow 9.0/13.6/14.4, ice 6.3/6.3/6.7, wet
+// asphalt 23.8/27.6/28), so one value serves both directions. It is structural: ice is 5x less grippy than snow but only
+// ~1.8x less stiff, which is why ice feels normal until it lets go. Mapping (estimates): dry uses the wet-asphalt row
+// (no dry row in the source); fresh snow and slush use the snow row. Outside 2-6 kN the end values are held.
+const STIFF = {dry:[29.6, 28.6, 22.38], snow:[11.9, 13.4, 13.7], fresh:[11.9, 13.4, 13.7], slush:[11.9, 13.4, 13.7], ice:[8.9, 7.6, 5.5]};
+function stiffness(kind, Fz){ const t = STIFF[kind], k = Math.max(0, Math.min(2, (Fz - 2000)/2000)), i = Math.min(1, Math.floor(k)); return t[i] + (t[i + 1] - t[i])*(k - i); }
+// Peak slip so the curve's initial slope (mu·Fz·slope0/peak slip) equals the measured stiffness·Fz
+function peakSlip(kind, mu, slope0, Fz){ return kind === 'gravel' ? PEAK_SLIP.gravel : mu*slope0/stiffness(kind, Fz); }
 function shapeKind(COND, cond){ return cond === 'gravel' ? 'gravel' : cond === 'fresh' ? 'fresh' : COND[cond].kind; }
 
 // Magic Formula-style curve normalised so its peak (C > 1) is 1 at s = 1. With C = 1 and a given B (gravel) the curve
@@ -88,7 +98,7 @@ function createSim(o){
     let p = cache[cond]; if (p) return p;
     const sp = P.surf[cond][tire], k = shapeKind(grip.COND, cond);
     const ratio = grip.gripMu(tire, cond, T, vehKey, tread)/grip.gripMu(tire, cond, P.ref.T, P.ref.vehicle, 'new');
-    p = cache[cond] = Object.assign({mu:sp.pk*ratio, kpk:PEAK_SLIP[k]}, mfShape(sp.C, sp.B));
+    p = cache[cond] = Object.assign({mu:sp.pk*ratio, kind:k}, mfShape(sp.C, sp.B));
     p.slope0 = p.C*p.B/p.N;                         // d f / d s at s = 0
     return p;
   }
@@ -185,6 +195,7 @@ function createSim(o){
       w.cond = ws[i].cond;
       const muI = sp.mu*Math.max(.5, 1 - TC.LS*(Fz/Fz0 - 1)), Fmax = muI*Fz;
       w.mu = muI; w.Fmax = Fmax;
+      const kpk = peakSlip(sp.kind, muI, sp.slope0, Fz); w.kpk = kpk;
       const di = i < 2 ? delta : 0, cd = Math.cos(di), sd = Math.sin(di);
       const vxb = st.u - st.r*WY[i], vyb = st.v + st.r*WX[i];
       const vx = vxb*cd + vyb*sd, vy = -vxb*sd + vyb*cd, avx = Math.abs(vx);
@@ -217,13 +228,13 @@ function createSim(o){
       w.uy = (w.uy - DT*vy)/(1 + DT*avx/TC.LY);
       // Near standstill the state is a real tread deflection, which is millimetres (the linear part of the curve):
       // cap it there so a car that slid to a stop doesn't unwind a sliding-sized "spring" by rolling (Fable review 1).
-      const lowCap = Math.max(0, 1 - avx/TC.VBLEND), linY = sp.kpk*TC.LY/sp.slope0, linX = sp.kpk*TC.LX/sp.slope0;
+      const lowCap = Math.max(0, 1 - avx/TC.VBLEND), linY = kpk*TC.LY/sp.slope0, linX = kpk*TC.LX/sp.slope0;
       const uyCap = TC.ACAP*TC.LY + (linY - TC.ACAP*TC.LY)*lowCap; if (w.uy > uyCap) w.uy = uyCap; else if (w.uy < -uyCap) w.uy = -uyCap;
       // Longitudinal: wheel spin and deflection solved together (implicit, secant tire stiffness)
       const kap0 = w.ux/TC.LX, alp = w.uy/TC.LY;
-      const Ks0 = Fmax*sp.slope0/sp.kpk/TC.LX;                 // N per metre of deflection at small slip
+      const Ks0 = Fmax*sp.slope0/kpk/TC.LX;                 // N per metre of deflection at small slip
       let Ks = Ks0;
-      if (Math.abs(w.ux) > 1e-7){ const s0 = Math.sqrt(kap0*kap0 + alp*alp), fm0 = Fmax*mf(s0/sp.kpk, sp); Ks = fm0*Math.abs(kap0)/s0/Math.abs(w.ux); }
+      if (Math.abs(w.ux) > 1e-7){ const s0 = Math.sqrt(kap0*kap0 + alp*alp), fm0 = Fmax*mf(s0/kpk, sp); Ks = fm0*Math.abs(kap0)/s0/Math.abs(w.ux); }
       const wl = Math.max(0, 1 - avx/TC.VBLEND), cl = wl*2*TC.ZETA*Math.sqrt(Ks0*Fz/G);
       const A = 1/(1 + DT*avx/TC.LX), Qc = Ks*A*DT + cl, den = 1 + DT*R*R/Iw*Qc, base = Ks*A*w.ux - Qc*vx;
       const omNB = (w.om + DT/Iw*(Td[i] - R*base))/den;
@@ -239,7 +250,7 @@ function createSim(o){
       // Combined-slip force: one grip budget, pointed against the slip
       const kap = w.ux/TC.LX, sN = Math.sqrt(kap*kap + alp*alp);
       let fx = 0, fy = 0;
-      if (sN > 1e-9){ const fm = Fmax*mf(sN/sp.kpk, sp); fx = fm*kap/sN; fy = fm*alp/sN; }
+      if (sN > 1e-9){ const fm = Fmax*mf(sN/kpk, sp); fx = fm*kap/sN; fy = fm*alp/sN; }
       fx += cl*(R*om - vx); fy -= wl*2*TC.ZETA*Math.sqrt(Ks0*TC.LX/TC.LY*Fz/G)*vy;
       const fmag = Math.sqrt(fx*fx + fy*fy); if (fmag > Fmax && fmag > 0){ fx *= Fmax/fmag; fy *= Fmax/fmag; }
       // Ploughing drag in slush or deep snow (not limited by grip)
@@ -289,6 +300,6 @@ function createSim(o){
   return {st, step, hashStep, surf, WX, WY, vehicle:V};
 }
 
-return {G, DT, DEG, RHO_AIR, TC, PEAK_SLIP, ABS_C, ESC_C, TCS_C, DRV_C, mfShape, mf, shapeKind,
+return {G, DT, DEG, RHO_AIR, TC, PEAK_SLIP, STIFF, stiffness, peakSlip, ABS_C, ESC_C, TCS_C, DRV_C, mfShape, mf, shapeKind,
   bodyToWorld, worldToBody, straightRoad, roadToWorldStraight, rng, flatEnv, createSim};
 });

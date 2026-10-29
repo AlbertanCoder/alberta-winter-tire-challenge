@@ -109,9 +109,9 @@ test('8. 6% polished-ice hill at -8 C: brakes hold when mu cos > sin, slide othe
     const moved = Math.abs(st.z);
     assert.ok(holds ? moved < .05 : moved > .5, `${tire}: mu ${mu.toFixed(4)} ${holds ? 'should hold' : 'should slide'}, moved ${moved.toFixed(3)} m`);
   }
-  // The "slides" half needs a case that slides: summer tires on glaze ice on the same 6% grade
-  { const s = sim({tire:'summer', T:-8, env:Phys.flatEnv({cond:'glaze', grade:6})}), mu = s.surf('glaze').mu;
-    assert.ok(mu*Math.cos(th) < Math.sin(th), 'glaze/summer should be below the hold limit, mu ' + mu);
+  // The "slides" half needs a case that slides (on 6% polished ice every tire holds): summer tires on glaze ice, 10% grade
+  { const th10 = Math.atan(.10), s = sim({tire:'summer', T:-8, env:Phys.flatEnv({cond:'glaze', grade:10})}), mu = s.surf('glaze').mu;
+    assert.ok(mu*Math.cos(th10) < Math.sin(th10), 'glaze/summer should be below the hold limit, mu ' + mu);
     const st = run(s, {brake:1}, 10); assert.ok(st.z > .5, 'glaze/summer slid ' + st.z.toFixed(3) + ' m'); }
   // Stop from speed, then sit with the brake held: no creep after the stop (Fable review 1)
   for (const [cond, kmh, abs] of [['polished', 20, true], ['packed', 40, false], ['dry', 20, true]]){

@@ -44,8 +44,16 @@ The curve peaks at s = 1 and falls toward sin(Cπ/2) as the tire slides. The for
 a locked or sliding tire pushes straight back along its sliding direction and **locked front wheels cannot steer**
 (test 4). Gravel uses C = 1 with a fitted B: no peak, because a locked tire ploughs a wedge of gravel and grips more
 (NHTSA, Forkenbrock et al., SAE 1999-01-1287).
-- Peak slip s_pk (same for κ and tan α, *estimates*): dry 0.12, packed/snow 0.15, fresh snow 0.20, slush 0.12,
-  ice 0.06, gravel 0.25. Ice peaking at a small slip is why ice gives no warning before it lets go.
+- **Small-slip stiffness is measured, not scaled with grip**: stiffness ÷ load from Svendenius (2007), *Validation of
+  the Brush Model towards VTI-measurement data recorded in Arjeplog 2006*, Lund University TFRT-7617, Table 8
+  (winter tire, cornering, "Norm" column) at 2 / 4 / 6 kN: snow 11.9 / 13.4 / 13.7, ice 8.9 / 7.6 / 5.5, wet asphalt
+  29.6 / 28.6 / 22.38 (interpolated by each wheel's load; end values held outside 2–6 kN). Its longitudinal values
+  (Table 5) are close, so one value serves both directions. The unit is per unit slip (stiffness normalised by load,
+  as in the report's brush model; inferred, the report doesn't spell it out). Mapping (*estimates*): dry uses the
+  wet-asphalt row (no dry row in the source); fresh snow and slush use the snow row.
+- Peak slip then follows: s_pk = μ · slope0 / stiffness, with slope0 = C·B the curve's initial slope. Ice is about
+  5× less grippy than snow but only about 1.8× less stiff, so it peaks at a much smaller slip: it feels normal until
+  it lets go. Gravel keeps a fixed peak slip of 0.25 (*estimate*) with its fitted no-peak curve.
 - Sideways peak μ = braking peak μ (no opened source supports a difference).
 - Load sensitivity: μ × (1 − 0.1 (F_z/F_z0 − 1)), F_z0 = the vehicle's average wheel load (*estimate*).
 - μ and C per tire × surface come from calibration (below). Temperature, tread and vehicle factors scale μ exactly as
@@ -128,6 +136,6 @@ Each type is based on a real model ([`js/vehicles.js`](js/vehicles.js)); every s
 - Peak-slip values, relaxation lengths, load sensitivity, ruts, ridges and gusts are estimates.
 - Deterministic per JavaScript engine: Math.sin/atan may differ in the last bits between browsers, so identical
   inputs give identical runs in the same browser, not necessarily bit-identical across browsers.
-- Cornering stiffness is not yet from published tire data: it follows from peak grip and peak slip, so it scales
-  with μ, and the cars come out nearly neutral (understeer 0.09-0.18 deg/g). Open item, see PROGRESS.md.
+- The cars come out only mildly understeering (0.02–0.33 deg/g, CALIBRATION.md section 5): the model has no
+  suspension compliance or aligning torque, which add understeer on real cars.
 - A physics model calibrated to published tests, not a guarantee of how any tire, car or road will behave.
