@@ -4,7 +4,7 @@ Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a sess
 
 ## Phase checklist (brief section 6)
 - [x] Phase 0, setup: section 0, section 9 kit + status line, index.html read once, plan, package.json with Playwright
-- [ ] Phase 1, physics core, tires, vehicles, calibration (no game changes); first Fable check
+- [x] Phase 1, physics core, tires, vehicles, calibration (no game changes); first Fable check
 - [ ] Phase 2, game integration: physics in the game, collisions, outcomes, camera, visuals, sound, aid toggles, Teaching mode, hazard fairness
 - [ ] Phase 3, inputs: analog keyboard and pads, tilt, gamepad and wheel
 - [ ] Phase 4, same-input comparison, X-ray replay, Physics check from the simulation
@@ -18,6 +18,8 @@ Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a sess
 ## Commits
 | Phase | Commit | Note |
 |---|---|---|
+| 0 | 035afd8 | setup, kit, Playwright |
+| 1 | 8b7d905 | physics core, tires, vehicles, calibration, tests 1-12, first Fable check |
 
 ## Plan (short)
 1. `js/physics.js`: pure UMD module (browser global `WTPhys` + Node `module.exports`), no DOM/THREE.
@@ -32,7 +34,7 @@ Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a sess
 - 2026-10-29 start: weekly usage 83% (resets 2026-11-03 04:00 Edmonton), 5h 37%. Free memory 0.9-2.1 GB
   (under the 2.34 GB floor). Playwright 1.64.1 installed 22:20 UTC; it uses the already-cached Chromium build 1248, so no browser download. CPU (thermal zone, approx) 75-85 C.
 
-## Phase 1 status (2026-10-29, work in progress, NOT done)
+## Phase 1 status (2026-10-29: DONE at 8b7d905; npm test 12/12, calibrate no diff, Fable findings all fixed or answered)
 Built: js/grip.js (v1 tables + legacy stopRun, verbatim), js/physics.js (4-wheel model, relaxation-length tire states,
 implicit wheel spin, combined-slip Magic Formula, filtered load transfer, gravity from road gradient per wheel, engine +
 automatic + creep, FWD/RWD/AWD/4x4, brakes + EBD, slip-band ABS, ESC, TCS, crosswind, ploughing drag),
