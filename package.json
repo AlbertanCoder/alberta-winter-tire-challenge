@@ -1,0 +1,13 @@
+{
+  "name": "alberta-winter-tire-challenge",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Alberta Winter Tire Challenge. The game itself has no dependencies; these are dev tools only.",
+  "scripts": {
+    "test": "node --test test/",
+    "test:e2e": "playwright test --workers=1",
+    "calibrate": "node scripts/calibrate.js",
+    "validate": "node scripts/validate.js"
+  },
+  "license": "MIT"
+}
