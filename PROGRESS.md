@@ -11,7 +11,7 @@ Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a sess
 - [ ] Phase 5, road effects and the four new scenarios
 - [ ] Phase 6, docs, Learn text, small fixes, number checks
 - [ ] Phase 7, media and the final check
-- [ ] First Fable check (after Phase 1)
+- [x] First Fable check (after Phase 1): done 2026-10-29; 14 of 15 findings fixed or answered, finding 3 open
 - [ ] Final Fable check (end of Phase 7)
 - [ ] LinkedIn draft Fable read
 
@@ -57,12 +57,32 @@ Resume here, in this order:
 4. Cornering stiffness / peak slip / relaxation lengths / load sensitivity are labelled estimates in physics.js; find a
    published source for cornering stiffness (brief 4.2) or keep them labelled.
 5. Performance test measured 4.08-4.88 ms per simulated second (limit 5): close; profile physics.js step() if it creeps.
-6. Write PHYSICS.md (equations + every parameter's source or "estimate"), then the first Fable check (brief section 10).
+6. DONE: PHYSICS.md; first Fable check done, findings in the table below (1 open: finding 3).
 Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true forward speed as their reference
 (real units estimate it); no Ackermann; one peak slip per surface for both directions; torque converter not modelled
 (full engine torque at launch); no engine braking; lateral aero from the car's own sideslip ignored.
 
+## First Fable check (2026-10-29, after Phase 1 build): findings and answers
+| # | Finding | Outcome |
+|---|---|---|
+| 1 HIGH | Car rolled back 25-97 mm after a braked stop (sliding-sized deflection state unwinding) | FIXED: below 1.5 m/s the deflection is capped at the tire's linear deflection (mm); test 8 now stops from speed then sits 10 s (< 1 mm; measured 0.000 mm) |
+| 2 HIGH | ESC reference used one Kv for all cars, ~8x the model's own; ESC fired in ordinary dry curves | FIXED: calibrate measures each vehicle's understeer gradient and ESC uses it; steady dry curves at 0.3-0.5 g, 80 and 100 km/h: ESC active 0% (was 45-100%); FMVSS 126 still passes for all 7 |
+| 3 MED | Cornering stiffness not from published tire data (brief 4.2); stiffness scales with mu; cars nearly neutral (0.09-0.18 deg/g) | OPEN, Phase 1 blocker: find an opened published source for Calpha/Fz and Ckappa/Fz (dry, snow, ice), make small-slip stiffness structural (not mu-scaled), let peak slip follow, recalibrate, re-run FMVSS. Stated in PHYSICS.md limits meanwhile |
+| 4 MED | ESC braked a rear wheel when the driver countersteered in a spin | FIXED: oversteer = yawing more than wanted or against the target, so the outside front is braked |
+| 5 MED | Test 8 "slides otherwise" never ran | FIXED: glaze + summer on the 6% grade (mu below tan theta) must slide; it does |
+| 6 MED | Test 2 covered 3 of 8 surfaces | FIXED: all 8 (92-96% of peak, ESC off). Note: with ESC on, gravel reaches 75% because ESC brakes as the steering winds past the limit; the test measures the tire limit with ESC off |
+| 7 LOW | Test 6 ran with ESC on | FIXED: esc off |
+| 8 LOW | Test 12 near its limit | FIXED: best of three 5-s windows; limit unchanged (5 ms). Last: 2.6-4.0 ms |
+| 9 LOW | Ruts/ridges zero-force not exercised | ANSWERED: deferred to Phase 5 (no rut environment yet); comment in test 9 |
+| 10 LOW | Aids use true speed | ANSWERED: kept, stated in PHYSICS.md (and that it is optimistic on ice) |
+| 11 LOW | TCS acts as a fast on/off brake | ANSWERED: results are sane (test 7); smoothing TCS brake pressure is a Phase 2 polish item |
+| 12 LOW | CALIBRATION.md claimed per-vehicle brake balance | FIXED: reworded (same estimate on every vehicle) |
+| 13 LOW | Unlabelled numbers (shift points, driveline efficiency, VBLEND, VEH.f) | FIXED: labelled in code and PHYSICS.md |
+| 14 LOW | Determinism is per JS engine | FIXED: sentence in PHYSICS.md |
+| 15 INFO | Idle creep acts in calibration stops | FIXED: sentence in PHYSICS.md |
+
 ## Open issues
+- Phase 1 is NOT done: Fable finding 3 (published cornering stiffness) is open.
 - Phase 0 rule slip: the Playwright install (2 packages, 2 s) started while free memory read 2.0 GB, under the 2.3 GB floor. Fixed by making `coord.js lock` refuse on low memory or CPU >= 90 C.
 
 ## Proposals (outside the brief; not done)

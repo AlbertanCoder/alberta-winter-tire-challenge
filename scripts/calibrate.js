@@ -74,6 +74,19 @@ for (const c of CONDS){
   }
 }
 
+// ---- 2b. Each vehicle's own understeer gradient, stored for its ESC (a real ESC's reference model is tuned to its car).
+// Dry, winter tires, 60 km/h, steady states at 0.1 g and 0.3 g: Kv = d(delta)/d(ay) - L/u², rad·s²/m.
+params.Kv = {};
+for (const key of Object.keys(VEH)){
+  const pts = [];
+  for (const target of [.1, .3]){
+    const V = VEH[key], sim = Phys.createSim({vehicle:V, vehicleKey:key, grip, params, env:Phys.flatEnv({cond:'dry'}), tire:'winter', T:-10, esc:false, u:60/3.6});
+    let sw = 0; for (let i = 0; i < 12000; i++){ const st = sim.st, e = 60/3.6 - st.u; sw += (target*9.81 - st.ays)*.02; sim.step({steer:sw, throttle:Math.max(0, Math.min(1, e*2))}); }
+    pts.push([sim.st.delta, sim.st.ays]);
+  }
+  params.Kv[key] = Math.round(((pts[1][0] - pts[0][0])/(pts[1][1] - pts[0][1]) - VEH[key].L/((60/3.6)**2))*1e6)/1e6;
+}
+
 // ---- 3. Verify (with the rounded parameters) and write the report
 const rows = [], failures = [];
 for (const c of CONDS) for (const t of TIRES){
@@ -130,11 +143,18 @@ ${anchorRows.join('\n')}
 The absolute ice distances are estimates (the game estimates the ice grip level); only the ratio is checked.
 
 ## 4. Other vehicles vs legacy (winter tires, ABS, 60 km/h)
-Legacy scaled grip by the v1 vehicle factor (VEH.f). v2 keeps that factor and adds load transfer, load sensitivity and each vehicle's brake balance.
+Legacy scaled grip by the v1 vehicle factor (VEH.f). v2 keeps that factor and adds load transfer and load sensitivity; brake balance (EBD, and 70% front with ABS off) is the same estimate on every vehicle.
 
 | Vehicle | Packed snow | Polished ice | Dry |
 |---|---|---|---|
 ${vehRows.join('\n')}
+
+## 5. Understeer gradient per vehicle (stored for its ESC reference model)
+Dry, winter tires, 60 km/h, from steady states at 0.1 g and 0.3 g with ESC off.
+
+| Vehicle | Kv (rad·s²/m) | deg per g |
+|---|---|---|
+${Object.keys(params.Kv).map(k => `| ${k} | ${params.Kv[k]} | ${(params.Kv[k]*9.81*180/Math.PI).toFixed(2)} |`).join('\n')}
 
 ## Result
 ${failures.length ? 'FAILURES:\n' + failures.map(f => '- ' + f).join('\n') : 'All checks pass.'}

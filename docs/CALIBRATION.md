@@ -32,20 +32,20 @@ Full v2 simulation (four wheels, ABS cycling, load transfer) vs legacy `stopRun(
 | slush | allweather | 0.2765 | C 1.3551 | +0.5% -0.3% -0.6% -0.7% -0.8% | -0.2% +0.3% +0.3% +0.3% +0.2% |
 | slush | allseason | 0.2145 | C 1.3547 | +0.4% -0.3% -0.5% -0.6% -0.7% | -0.2% +0.4% +0.4% +0.3% +0.2% |
 | slush | summer | 0.1422 | C 1.3493 | +0.5% -0.0% -0.2% -0.4% -0.5% | -0.2% +0.3% +0.3% +0.2% +0.1% |
-| black | winter | 0.1681 | C 1.4635 | +0.5% -0.4% -0.6% -0.7% -0.7% | -0.7% +0.6% +0.7% +0.6% +0.6% |
-| black | allweather | 0.1256 | C 1.4616 | +0.6% -0.1% -0.3% -0.5% -0.6% | -0.6% +0.6% +0.7% +0.6% +0.5% |
-| black | allseason | 0.1046 | C 1.4615 | +0.5% -0.1% -0.3% -0.5% -0.6% | -0.7% +0.5% +0.6% +0.5% +0.4% |
+| black | winter | 0.168 | C 1.4635 | +0.4% -0.3% -0.5% -0.6% -0.7% | -0.6% +0.6% +0.7% +0.7% +0.6% |
+| black | allweather | 0.1256 | C 1.4618 | +0.5% -0.1% -0.3% -0.5% -0.6% | -0.6% +0.6% +0.7% +0.6% +0.5% |
+| black | allseason | 0.1046 | C 1.4616 | +0.5% -0.1% -0.4% -0.5% -0.6% | -0.7% +0.5% +0.6% +0.5% +0.4% |
 | black | summer | 0.0783 | C 1.462 | +0.5% -0.0% -0.3% -0.5% -0.6% | -0.6% +0.6% +0.6% +0.5% +0.3% |
-| polished | winter | 0.1467 | C 1.4616 | +0.5% -0.3% -0.5% -0.6% -0.6% | -0.7% +0.5% +0.7% +0.6% +0.5% |
+| polished | winter | 0.1466 | C 1.4615 | +0.6% -0.2% -0.4% -0.5% -0.6% | -0.6% +0.6% +0.7% +0.7% +0.5% |
 | polished | allweather | 0.1098 | C 1.4618 | +0.5% -0.1% -0.3% -0.5% -0.6% | -0.6% +0.6% +0.7% +0.6% +0.5% |
-| polished | allseason | 0.0993 | C 1.4616 | +0.5% -0.1% -0.3% -0.5% -0.6% | -0.6% +0.6% +0.6% +0.6% +0.4% |
+| polished | allseason | 0.0993 | C 1.4615 | +0.5% -0.1% -0.3% -0.5% -0.6% | -0.6% +0.6% +0.6% +0.5% +0.4% |
 | polished | summer | 0.0678 | C 1.4621 | +0.5% +0.0% -0.3% -0.5% -0.6% | -0.5% +0.6% +0.6% +0.5% +0.3% |
 | gravel | winter | 0.3551 | B 2.9643 | -1.6% +1.3% +1.5% +0.8% +0.7% | +0.5% -0.1% -0.3% -0.4% -0.5% |
 | gravel | allweather | 0.3232 | B 2.9663 | -1.5% +1.6% +0.9% +0.7% +0.9% | +0.5% -0.1% -0.3% -0.4% -0.5% |
 | gravel | allseason | 0.2492 | B 3.034 | -1.6% +0.9% +0.8% +0.7% +0.4% | +0.4% -0.1% -0.2% -0.3% -0.4% |
-| gravel | summer | 0.1445 | B 3.0026 | -0.7% -0.1% -0.0% +0.7% -0.1% | +0.3% +0.0% -0.1% -0.2% -0.3% |
-| glaze | winter | 0.1046 | C 1.4615 | +0.5% -0.1% -0.3% -0.5% -0.6% | -0.7% +0.5% +0.6% +0.5% +0.4% |
-| glaze | allweather | 0.0836 | C 1.4618 | +0.5% -0.1% -0.3% -0.5% -0.7% | -0.6% +0.5% +0.6% +0.5% +0.3% |
+| gravel | summer | 0.1445 | B 2.9723 | -0.5% +1.4% +1.2% +1.0% +0.6% | +0.3% +0.0% -0.1% -0.2% -0.3% |
+| glaze | winter | 0.1046 | C 1.4616 | +0.5% -0.1% -0.4% -0.5% -0.6% | -0.7% +0.5% +0.6% +0.5% +0.4% |
+| glaze | allweather | 0.0836 | C 1.4619 | +0.5% -0.1% -0.3% -0.5% -0.7% | -0.6% +0.5% +0.6% +0.5% +0.3% |
 | glaze | allseason | 0.0731 | C 1.4622 | +0.5% -0.1% -0.3% -0.5% -0.7% | -0.6% +0.6% +0.6% +0.5% +0.3% |
 | glaze | summer | 0.0521 | C 1.4623 | +0.5% -0.0% -0.3% -0.5% -0.7% | -0.5% +0.5% +0.5% +0.4% +0.1% |
 
@@ -55,22 +55,35 @@ Full v2 simulation (four wheels, ABS cycling, load transfer) vs legacy `stopRun(
 | Packed snow, 40 km/h, best winter tire | 56.1 ft | 55.9 ft | -0.3% |
 | Packed snow, 40 km/h, best all-weather tire | 58.6 ft | 59.1 ft | +0.9% |
 | Packed snow, 40 km/h, M+S all-season tire | 84.5 ft | 84.6 ft | +0.1% |
-| Ice rink, 19 km/h, all-weather ÷ winter distance | 1.307 | 1.318 (winter 32.0 ft, all-weather 42.2 ft) | +0.8% |
+| Ice rink, 19 km/h, all-weather ÷ winter distance | 1.307 | 1.316 (winter 32.1 ft, all-weather 42.2 ft) | +0.7% |
 
 The absolute ice distances are estimates (the game estimates the ice grip level); only the ratio is checked.
 
 ## 4. Other vehicles vs legacy (winter tires, ABS, 60 km/h)
-Legacy scaled grip by the v1 vehicle factor (VEH.f). v2 keeps that factor and adds load transfer, load sensitivity and each vehicle's brake balance.
+Legacy scaled grip by the v1 vehicle factor (VEH.f). v2 keeps that factor and adds load transfer and load sensitivity; brake balance (EBD, and 70% front with ABS off) is the same estimate on every vehicle.
 
 | Vehicle | Packed snow | Polished ice | Dry |
 |---|---|---|---|
-| small | 38.0 m vs 38.1 m (-0.2%) | 93.4 m vs 93.9 m (-0.5%) | 16.7 m vs 16.8 m (-0.5%) |
-| sedan | 38.3 m vs 38.5 m (-0.4%) | 94.3 m vs 94.7 m (-0.5%) | 16.8 m vs 16.9 m (-0.7%) |
-| suv | 38.7 m vs 38.9 m (-0.4%) | 95.1 m vs 95.6 m (-0.6%) | 17.0 m vs 17.1 m (-0.3%) |
-| bigsuv | 39.2 m vs 39.6 m (-1.1%) | 96.8 m vs 97.5 m (-0.8%) | 17.2 m vs 17.4 m (-1.5%) |
+| small | 38.0 m vs 38.1 m (-0.2%) | 93.5 m vs 93.9 m (-0.4%) | 16.7 m vs 16.8 m (-0.5%) |
+| sedan | 38.3 m vs 38.5 m (-0.4%) | 94.4 m vs 94.7 m (-0.4%) | 16.8 m vs 16.9 m (-0.7%) |
+| suv | 38.7 m vs 38.9 m (-0.4%) | 95.2 m vs 95.6 m (-0.5%) | 17.0 m vs 17.1 m (-0.3%) |
+| bigsuv | 39.2 m vs 39.6 m (-1.1%) | 96.8 m vs 97.5 m (-0.7%) | 17.2 m vs 17.4 m (-1.5%) |
 | van | 38.9 m vs 39.3 m (-0.9%) | 95.9 m vs 96.6 m (-0.7%) | 17.1 m vs 17.3 m (-1.2%) |
-| pickup | 39.8 m vs 40.1 m (-0.7%) | 98.1 m vs 98.4 m (-0.4%) | 17.4 m vs 17.6 m (-1.1%) |
-| hd | 41.0 m vs 41.3 m (-0.8%) | 101.0 m vs 101.4 m (-0.4%) | 18.0 m vs 18.2 m (-1.4%) |
+| pickup | 39.8 m vs 40.1 m (-0.7%) | 98.1 m vs 98.4 m (-0.3%) | 17.4 m vs 17.6 m (-1.1%) |
+| hd | 41.0 m vs 41.3 m (-0.8%) | 101.1 m vs 101.4 m (-0.3%) | 18.0 m vs 18.2 m (-1.4%) |
+
+## 5. Understeer gradient per vehicle (stored for its ESC reference model)
+Dry, winter tires, 60 km/h, from steady states at 0.1 g and 0.3 g with ESC off.
+
+| Vehicle | Kv (rad·s²/m) | deg per g |
+|---|---|---|
+| small | 0.000326 | 0.18 |
+| sedan | 0.000304 | 0.17 |
+| suv | 0.000295 | 0.17 |
+| bigsuv | 0.000155 | 0.09 |
+| van | 0.000232 | 0.13 |
+| pickup | 0.000327 | 0.18 |
+| hd | 0.000297 | 0.17 |
 
 ## Result
 All checks pass.

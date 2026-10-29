@@ -18,7 +18,7 @@ const COND = {
   gravel:{name:'Snowy gravel', kind:'snow', mu:{winter:.34,allweather:.31,allseason:.24,summer:.14}, abs:.8, est:true},
   glaze:{name:'Glaze ice (freezing rain)', kind:'ice', mu:{winter:.10,allweather:.08,allseason:.07,summer:.05}, est:true}
 };
-// Heavier vehicles slightly lower μ (index.html v1 VEH.f)
+// Heavier vehicles slightly lower μ (index.html v1 VEH.f; an estimate from tire load sensitivity)
 const VEH_F = {small:1.0, sedan:.99, suv:.98, bigsuv:.96, van:.97, pickup:.95, hd:.92};
 const HARD = {winter:.001, allweather:.002, allseason:.004, summer:.01};
 const TMUL = {

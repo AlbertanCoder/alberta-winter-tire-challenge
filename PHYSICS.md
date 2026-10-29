@@ -56,11 +56,13 @@ a locked or sliding tire pushes straight back along its sliding direction and **
    0.25 → 0.2362 (Tire Rack 2026: 84.5 ft from 40 km/h; v1 gave 80.0 ft).
 2. For each tire × surface on the reference small car at −10 °C: μ_pk and C are fitted so the full simulation's
    straight-line stops from 19, 40, 60, 80, 100 km/h match the v1 `stopRun()` (2% with ABS, 3% locked).
-3. Checked against the measured anchors: Tire Rack packed snow from 40 km/h (56.1 / 58.6 / 84.5 ft) and the
+3. Calibration stops run in D, so idle creep acts below 1.7 m/s, as in a real automatic (the v1 model had none;
+   the fit absorbs it).
+4. Checked against the measured anchors: Tire Rack packed snow from 40 km/h (56.1 / 58.6 / 84.5 ft) and the
    ice-rink ratio (50.6 ÷ 38.7 ft).
 
 ## Drivetrain
-- Engine: torque = throttle × min(T_max, P_max/ω_e), ω_e = max(idle, wheel speed × gear × final drive); fuel cut at
+- Engine (shift points 2,200-5,200 rpm up, 1,300 rpm down, driveline efficiency 0.9: estimates): torque = throttle × min(T_max, P_max/ω_e), ω_e = max(idle, wheel speed × gear × final drive); fuel cut at
   redline. Automatic gearbox with speed-based shifts. Idle creep in D: up to 0.03 m g toward 1.7 m/s (*estimates*).
 - Open differential on each driven axle (equal torque left and right), so one wheel on ice limits drive (test 7).
 - AWD (simplification): an active coupling shifts torque toward the axle slipping less.
@@ -79,7 +81,10 @@ a locked or sliding tire pushes straight back along its sliding direction and **
   ESC and TCS need the ABS hardware, so ABS off turns them off too. Checked with the FMVSS/CMVSS 126 sine-with-dwell
   procedure (49 CFR 571.126) on dry pavement (test 3; `scripts/fmvss126.js`).
 - TCS: brakes a driven wheel that spins faster than the car and cuts engine torque.
-- Simplification: ABS, ESC and TCS use the car's true forward speed as their reference; real units estimate it.
+- Simplification: ABS, ESC and TCS use the car's true forward speed as their reference; real units estimate it
+  (this is optimistic on ice with all four wheels near lock-up).
+- ESC's reference model uses each vehicle's own understeer gradient, measured by `npm run calibrate`
+  (CALIBRATION.md section 5), as a real ESC is tuned to its car.
 
 ## Road and air
 - Gravity along the surface from the height gradient ∇h at the CG; per-wheel gradient differences (ruts, ridges)
@@ -121,4 +126,8 @@ Each type is based on a real model ([`js/vehicles.js`](js/vehicles.js)); every s
 - Generic ABS, ESC, TCS and AWD logic; real systems differ by maker and are tuned far more finely.
 - No Ackermann steering geometry, no camber or aligning torque, no tire relaxation differences by surface.
 - Peak-slip values, relaxation lengths, load sensitivity, ruts, ridges and gusts are estimates.
+- Deterministic per JavaScript engine: Math.sin/atan may differ in the last bits between browsers, so identical
+  inputs give identical runs in the same browser, not necessarily bit-identical across browsers.
+- Cornering stiffness is not yet from published tire data: it follows from peak grip and peak slip, so it scales
+  with μ, and the cars come out nearly neutral (understeer 0.09-0.18 deg/g). Open item, see PROGRESS.md.
 - A physics model calibrated to published tests, not a guarantee of how any tire, car or road will behave.

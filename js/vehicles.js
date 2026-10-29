@@ -39,7 +39,7 @@ for (const key in SPEC){
     brakeMax: 1.5*m*G*R,                  // est: total brake torque at full pedal, enough to lock all four on dry
     rollFront: .6,                        // est: front share of roll stiffness
     Kv: .0025,                            // est: ESC's stored understeer gradient, rad·s²/m
-    // Engine torque and power sourced; idle, redline and gear ratios are est (generic 6-speed; the Civic's CVT and the
+    // Engine torque and power sourced; idle, redline, gear ratios and driveline efficiency 0.9 are est (generic 6-speed; the Civic's CVT and the
     // 8-speeds are approximated by it)
     engine: {Tmax:Tq, Pmax:kW*1000, idle:750*Math.PI/30, redline:6200*Math.PI/30, gears:[4.2, 2.6, 1.7, 1.25, 1.0, .8], final:3.6*R/.31, eff:.9},
     drive, awdFront:drive === 'awd' ? .6 : .5,          // est: AWD base front share

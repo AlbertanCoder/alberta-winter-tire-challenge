@@ -20,7 +20,7 @@ const TC = {
   LY: .40,       // lateral relaxation length, m (estimate)
   KCAP: 3,       // deflection-state caps (slip ratio, tan of slip angle): beyond these the tire is fully sliding
   ACAP: 12,
-  VBLEND: 1.5,   // m/s: below this the low-speed damping blends in (Bernard & Clover, SAE 950311, low-speed treatment)
+  VBLEND: 1.5,   // m/s: below this the low-speed damping blends in (estimate; the low-speed treatment follows Bernard & Clover, SAE 950311)
   ZETA: .7,      // damping ratio of that low-speed term (estimate)
   LS: .1         // load sensitivity: mu falls 10% per 100% load above the vehicle's average wheel load (estimate)
 };
@@ -126,11 +126,11 @@ function createSim(o){
     if (escOn && vRef > ESC_C.VMIN){
       // Target yaw rate from steering (bicycle model with the ECU's stored understeer gradient), limited by the
       // friction the car is showing through its lateral accelerometer. ESC never sees the real surface mu.
-      const rLin = vRef*delta/(V.L + V.Kv*vRef*vRef), rMax = (Math.abs(st.ays) + ESC_C.AY_MARGIN)/vRef;
+      const Kv = (P.Kv && P.Kv[vehKey] != null) ? P.Kv[vehKey] : V.Kv, rLin = vRef*delta/(V.L + Kv*vRef*vRef), rMax = (Math.abs(st.ays) + ESC_C.AY_MARGIN)/vRef;
       const rt = clamp(rLin, -rMax, rMax), err = st.r - rt, db = ESC_C.DB + ESC_C.DBK*Math.abs(rt);
       if (Math.abs(err) > db){
         const M = -ESC_C.K*Iz*(err - Math.sign(err)*db);              // yaw moment wanted, N·m
-        const over = Math.abs(st.r) > Math.abs(rt) && (st.r*rt >= 0);  // turning more than asked: oversteer
+        const over = Math.abs(st.r) > Math.abs(rt) || st.r*rt < 0;     // yawing more than asked, or against it (a spin): oversteer
         const left = M > 0, wi = over ? (left ? 0 : 1) : (left ? 2 : 3);  // outside front for a spin, inside rear for a push
         const tw = wi < 2 ? V.tf : V.tr;
         Tesc[wi] = Math.min(Math.abs(M)/(tw/2)*R, .25*V.brakeMax);
@@ -150,7 +150,7 @@ function createSim(o){
     let omD = 0, nDr = 0; for (let i = 0; i < 4; i++) if (driven[i]){ omD += W[i].om; nDr++; } omD /= nDr;
     let Ta = 0;
     if (!neutral){
-      const up = (2200 + 3000*thr)*Math.PI/30, down = 1300*Math.PI/30;
+      const up = (2200 + 3000*thr)*Math.PI/30, down = 1300*Math.PI/30;   // shift points, rpm (estimates)
       while (st.gear < E.gears.length - 1 && omD*E.gears[st.gear]*E.final > up) st.gear++;
       while (st.gear > 0 && omD*E.gears[st.gear]*E.final < down) st.gear--;
       const ratio = E.gears[st.gear]*E.final, we = Math.max(E.idle, omD*ratio);
@@ -215,7 +215,10 @@ function createSim(o){
       w.Tb = Tb; w.Td = Td[i];
       // Lateral deflection state (relaxation length, implicit so it is stable at any speed)
       w.uy = (w.uy - DT*vy)/(1 + DT*avx/TC.LY);
-      const uyCap = TC.ACAP*TC.LY; if (w.uy > uyCap) w.uy = uyCap; else if (w.uy < -uyCap) w.uy = -uyCap;
+      // Near standstill the state is a real tread deflection, which is millimetres (the linear part of the curve):
+      // cap it there so a car that slid to a stop doesn't unwind a sliding-sized "spring" by rolling (Fable review 1).
+      const lowCap = Math.max(0, 1 - avx/TC.VBLEND), linY = sp.kpk*TC.LY/sp.slope0, linX = sp.kpk*TC.LX/sp.slope0;
+      const uyCap = TC.ACAP*TC.LY + (linY - TC.ACAP*TC.LY)*lowCap; if (w.uy > uyCap) w.uy = uyCap; else if (w.uy < -uyCap) w.uy = -uyCap;
       // Longitudinal: wheel spin and deflection solved together (implicit, secant tire stiffness)
       const kap0 = w.ux/TC.LX, alp = w.uy/TC.LY;
       const Ks0 = Fmax*sp.slope0/sp.kpk/TC.LX;                 // N per metre of deflection at small slip
@@ -232,7 +235,7 @@ function createSim(o){
       }
       w.omPrev = w.om; w.om = om; w.locked = om === 0 && avx > .3;
       w.ux = A*(w.ux + DT*(R*om - vx));
-      const uxCap = TC.KCAP*TC.LX; if (w.ux > uxCap) w.ux = uxCap; else if (w.ux < -uxCap) w.ux = -uxCap;
+      const uxCap = TC.KCAP*TC.LX + (linX - TC.KCAP*TC.LX)*lowCap; if (w.ux > uxCap) w.ux = uxCap; else if (w.ux < -uxCap) w.ux = -uxCap;
       // Combined-slip force: one grip budget, pointed against the slip
       const kap = w.ux/TC.LX, sN = Math.sqrt(kap*kap + alp*alp);
       let fx = 0, fy = 0;
