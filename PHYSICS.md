@@ -91,9 +91,29 @@ a locked or sliding tire pushes straight back along its sliding direction and **
 - Ploughing drag in slush or deep snow: a share of the wheel's load against its motion (*estimate*, per scenario).
 
 ## Vehicles
-**Interim**: `js/vehicles.js` uses only numbers already in v1 (mass, weight share, wheelbase, width, wheel radius)
-plus rules of thumb, all labelled estimates (yaw inertia = 0.95 m a b; CG heights; engines; steering ratios). The
-sourced specs for real base models are being researched (PROGRESS.md, Phase 1 item 3).
+Each type is based on a real model ([`js/vehicles.js`](js/vehicles.js)); every sourced value has its URL and a quote in
+[`docs/research/vehicle-specs.json`](docs/research/vehicle-specs.json) (researched 2026-10-29).
+
+| Game type | Based on | Sourced | Estimates |
+|---|---|---|---|
+| Small car | 2019 Honda Civic Sedan LX (FWD) | mass, wheelbase, tracks, weight split, steering ratio, turning circle, tire, engine | GVWR (range only), yaw inertia |
+| Sedan | 2019 Toyota Camry LE (FWD) | mass, GVWR, wheelbase, tracks, turning circle, tire, engine | weight split (v1 0.60), steering ratio, yaw inertia |
+| Small SUV | 2019 Chevrolet Trax LS AWD | mass, wheelbase, tracks, turning circle, tire, engine | GVWR (range only), weight split (v1 0.58), steering ratio, yaw inertia |
+| Large SUV | 2019 Chevrolet Tahoe LT 4WD | mass, GVWR, wheelbase, tracks, weight split, turning circle, tire, engine | steering ratio, yaw inertia |
+| Minivan | 2019 Dodge Grand Caravan SE (FWD) | mass, GVWR, wheelbase, tracks, weight split, steering ratio, turning circle, tire, engine | yaw inertia |
+| Pickup | 2019 Ford F-150 XLT SuperCrew 4x4 (3.3 L) | mass, GVWR, wheelbase, tracks, weight split, turning circle, tire, engine | steering ratio, yaw inertia |
+| Heavy-duty pickup | 2019 Ram 2500 Crew Cab 4x4 (6.4 L) | mass, GVWR, wheelbase, tracks, weight split, turning circle, tire, engine | steering ratio, yaw inertia |
+
+- CG height = average track ÷ (2 × SSF), the static stability factor in NHTSA's 5-Star ratings data (2020 Ram 2500
+  value for the 2019, same generation).
+- Rolling radius: unloaded radius computed from the tire size. Max road-wheel angle: asin(L ÷ (D/2)) from the
+  curb-to-curb turning circle D (computed).
+- Estimates on every vehicle: yaw inertia = 0.95 m a b (NHTSA's measured inertia data stops at 1998 models);
+  wheel spin inertia; brake balance with ABS off (70% front); full-pedal brake torque; roll-stiffness split (60%
+  front); ESC's stored understeer gradient; a generic 6-speed gearbox (the Civic's CVT and the 8-speeds are
+  approximated); side area for crosswind.
+- Tahoe curb weight differs between sources (NHTSA 5,414 lb, axle weights 5,456 lb, a listing 5,602 lb); the game
+  uses 2,541 kg (5,602 lb) with the 0.522 front share from the axle weights.
 
 ## What the model can't do
 - No suspension, roll or pitch dynamics (load transfer uses filtered accelerations), and no tire heating or wear.

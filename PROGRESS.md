@@ -51,8 +51,9 @@ Resume here, in this order:
    1 s after steer). Choices to list in PHYSICS.md: the regulation gives no range for the A regression, so 0.2-0.4 g
    is used; run on the game's dry surface (mu about 0.88 peak vs the standard's PFC 1.02 surface); HD pickup uses the
    1.52 m limit pending its sourced GVWR. Must be re-run after the vehicle research (item 3).
-3. Vehicle research (brief 4.5): pick the real base model for each of the 7 types, source every parameter, replace
-   js/vehicles.js, match PROF wheelbase/width, re-run calibrate and tests.
+3. DONE: vehicle research (docs/research/vehicle-specs.json, 96 sourced values, 16 not found); js/vehicles.js uses
+   it; calibrate passes and npm test 12/12 on the sourced specs. Still to do in Phase 2: match PROF wheelbase/width
+   in index.html and show the "based on" labels in the vehicle picker.
 4. Cornering stiffness / peak slip / relaxation lengths / load sensitivity are labelled estimates in physics.js; find a
    published source for cornering stiffness (brief 4.2) or keep them labelled.
 5. Performance test measured 4.08-4.88 ms per simulated second (limit 5): close; profile physics.js step() if it creeps.
@@ -63,6 +64,5 @@ Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true 
 
 ## Open issues
 - Phase 0 rule slip: the Playwright install (2 packages, 2 s) started while free memory read 2.0 GB, under the 2.3 GB floor. Fixed by making `coord.js lock` refuse on low memory or CPU >= 90 C.
-- Vehicle specs (brief 4.5) are interim estimates in js/vehicles.js until the spec-sheet research is done (Phase 1).
 
 ## Proposals (outside the brief; not done)

@@ -93,7 +93,7 @@ function series(key, esc, gvwrOver3500, params){
 module.exports = {butterFiltfilt, slowlyIncreasingSteer, sineWithDwell, series};
 if (require.main === module){
   for (const key of (process.argv[2] || 'small').split(',')) for (const esc of [true, false]){
-    const s = series(key, esc, key === 'hd');
+    const s = series(key, esc, VEH[key].gvwr > 3500);
     const worst = s.runs.reduce((w, r) => r.r1 > w.r1 ? r : w, s.runs[0]);
     console.log(`${key} ESC ${esc ? 'on ' : 'off'} A=${s.A} deg  ${s.pass ? 'PASS' : 'FAIL'}  runs ${s.runs.length}  worst yaw@1.0s ${(worst.r1*100).toFixed(0)}% @${worst.amp.toFixed(0)} deg  min disp ${Math.min(...s.runs.filter(r => r.amp >= 5*s.A).map(r => r.disp)).toFixed(2)} m  fails: ${s.runs.filter(r => !r.pass).map(r => `${r.amp.toFixed(0)}${r.dir > 0 ? 'L' : 'R'}(${(r.r1*100).toFixed(0)}%/${(r.r175*100).toFixed(0)}%/${r.disp.toFixed(2)}m)`).join(' ')}`);
   }

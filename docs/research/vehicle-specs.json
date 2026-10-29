@@ -1,0 +1,669 @@
+{
+ "researched": "2026-10-29",
+ "method_notes": {
+  "nhtsa_source": "NHTSA 5-Star Safety Ratings bulk data (Safercar_data.csv), columns MAKE, MODEL, MODEL_YR, BODY_STYLE, DRIVE_TRAIN, MIN_GROSS_WEIGHT, MAX_GROSS_WEIGHT, CURB_WEIGHT, STATIC_STABI_FACTOR; quotes are the relevant cells of the matching row",
+  "units": "lengths in m, masses in kg; 1 lb = 0.45359237 kg, 1 in = 0.0254 m, 1 ft = 0.3048 m, 1 lb-ft = 1.3558179 N·m, 1 hp = 0.7457 kW",
+  "turning_circle": "value is a turning DIAMETER in m",
+  "status_key": "value null + note starting 'not found' = searched and not found; note starting 'estimate' = intentionally left for the game's rule of thumb; range_kg = only a range was published",
+  "blocked_sources": "media.gm.com / media.chevrolet.com (redirect to newsroom root), media.gm.ca (403), media.ford.com spec PDFs (403 or redirect), Toyota US product-information PDF (403), auto123 (404), caranddriver.com, motortrend.com and web.archive.org (fetch tool refuses), edmunds, jdpower, carcostcanada, thecarconnection (403)"
+ },
+ "vehicles": {
+  "small": {
+   "model": "2019 Honda Civic Sedan LX, 2.0 L, CVT (US spec)",
+   "fields": {
+    "curb_mass_kg": {
+     "value": 1256.9,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Curb Weight (6MT/CVT): 2762 lbs / 2771 lbs",
+     "note": "converted from lb (CVT figure). Honda Canada lists LX CVT at 1270 kg: https://hondanews.ca/en-CA/releases/release-4f32a27ba2ad7509bfa642e1160211d9-2019-civic-4d-specs"
+    },
+    "gvwr_kg": {
+     "value": null,
+     "range_kg": [
+      1695.1,
+      1769.9
+     ],
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "HONDA,CIVIC,2019,4 DR,FWD ... MIN_GROSS_WEIGHT=3737, MAX_GROSS_WEIGHT=3902",
+     "note": "Honda spec page lists no GVWR; NHTSA ratings data gives a 3737-3902 lb gross-weight range for the 2019 Civic 4-door without mapping it to trims, so no single value is given"
+    },
+    "wheelbase_m": {
+     "value": 2.7,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Wheelbase: 106.3 in",
+     "note": "converted from in"
+    },
+    "track_front_m": {
+     "value": 1.5469,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Track (front/rear): 60.9 in / 61.5 in",
+     "note": "converted from in"
+    },
+    "track_rear_m": {
+     "value": 1.5621,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Track (front/rear): 60.9 in / 61.5 in",
+     "note": "converted from in"
+    },
+    "front_weight_share": {
+     "value": 0.608,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Weight Distribution (front/rear, CVT): 60.8% / 39.2%"
+    },
+    "cg_height_m": {
+     "value": 0.5252,
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "HONDA,CIVIC,2019,4 DR,FWD ... STATIC_STABI_FACTOR=1.48, ROLLOVER_STARS=5",
+     "note": "computed: cg_height = mean(track_front, track_rear) / (2 x SSF), using the tracks in this file (NHTSA's own measured track for its test vehicle is not in the CSV). SSF 1.48."
+    },
+    "yaw_inertia_kgm2": {
+     "value": null,
+     "note": "estimate: NHTSA measured inertial data (Heydinger et al., SAE 1999-01-1336, 'data through November 1998', 496 entries) covers vehicles measured up to 1998 only, so it has no entry for this generation; the full table is not openly published (TRID record says copies come from NHTSA). No other published yaw inertia found. Left null for the game's rule of thumb."
+    },
+    "tire_size": {
+     "value": "215/55R16",
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Tire Size (All-Season Tires): 215/55R16 93H"
+    },
+    "rolling_radius_m": {
+     "value": 0.3215,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Tire Size (All-Season Tires): 215/55R16 93H",
+     "note": "computed from 215/55R16: 16 in / 2 + 215 mm x 0.55; unloaded nominal radius, not a measured loaded or rolling radius"
+    },
+    "steering_ratio": {
+     "value": 10.94,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Steering Ratio: 10.94 : 1",
+     "note": "Honda lists 'Variable Ratio Electric Power-Assisted Rack-and-Pinion Steering'; 10.94 is Honda's single published figure"
+    },
+    "turning_circle_m": {
+     "value": 10.79,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Turning Diameter, Curb-to-Curb: 35.4 ft",
+     "note": "curb-to-curb diameter, converted from ft"
+    },
+    "engine_torque_Nm": {
+     "value": 187.0,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Torque: 138 lb-ft @ 4200 rpm",
+     "note": "converted from lb-ft"
+    },
+    "engine_power_kW": {
+     "value": 117.8,
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Horsepower: 158 @ 6500 rpm",
+     "note": "converted from hp"
+    },
+    "drivetrain": {
+     "value": "FWD",
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "HONDA,CIVIC,2019,4 DR,PC,FWD"
+    },
+    "transmission": {
+     "value": "CVT (no fixed gears)",
+     "source": "https://hondanews.com/en-US/honda-automobiles/releases/release-5a7e83c266f34585a5e78065ed827628-2019-civic-sedan-specifications-features",
+     "quote": "Continuously Variable Transmission (M-CVT): Available [LX]; 6-Speed Manual Transmission (6MT): standard [LX]",
+     "note": "LX standard is the 6MT; this file uses the CVT version"
+    }
+   }
+  },
+  "sedan": {
+   "model": "2019 Toyota Camry LE, 2.5 L four, 8-speed automatic, FWD (Canadian spec)",
+   "fields": {
+    "curb_mass_kg": {
+     "value": 1495,
+     "source": "https://toyotacanada.scene7.com/is/content/toyotacanada/2019_Toyota_Camry__LE_SE_XLE_XSEpdf?bfc=off&$?cdh=attachment",
+     "quote": "Base Curb Weight kg (lbs.) 1495 (3295.9)",
+     "note": "Toyota Canada media, '2019 Toyota Camry - LE, SE, XLE, XSE Specifications' PDF, linked from https://media.toyota.ca/content/media-toyota/en/models/camry.5.html; LE is the first column"
+    },
+    "gvwr_kg": {
+     "value": 2029,
+     "source": "https://toyotacanada.scene7.com/is/content/toyotacanada/2019_Toyota_Camry__LE_SE_XLE_XSEpdf?bfc=off&$?cdh=attachment",
+     "quote": "Gross Vehicle Weight kg (lbs.) 2029 (4475)",
+     "note": "Toyota Canada media, '2019 Toyota Camry - LE, SE, XLE, XSE Specifications' PDF, linked from https://media.toyota.ca/content/media-toyota/en/models/camry.5.html; LE is the first column"
+    },
+    "wheelbase_m": {
+     "value": 2.825,
+     "source": "https://toyotacanada.scene7.com/is/content/toyotacanada/2019_Toyota_Camry__LE_SE_XLE_XSEpdf?bfc=off&$?cdh=attachment",
+     "quote": "Wheelbase mm (in.) 2825 (111.2)",
+     "note": "Toyota Canada media, '2019 Toyota Camry - LE, SE, XLE, XSE Specifications' PDF, linked from https://media.toyota.ca/content/media-toyota/en/models/camry.5.html; LE is the first column"
+    },
+    "track_front_m": {
+     "value": 1.59,
+     "source": "https://www.guideautoweb.com/en/makes/toyota/camry/2019/specifications/le/",
+     "quote": "Front track: 1,590 mm (63″)",
+     "note": "Toyota's own track figure not found (US product-information PDF returned 403; the Canada PDF has no track row)"
+    },
+    "track_rear_m": {
+     "value": 1.595,
+     "source": "https://www.guideautoweb.com/en/makes/toyota/camry/2019/specifications/le/",
+     "quote": "Rear track: 1,595 mm (63″)"
+    },
+    "front_weight_share": {
+     "value": null,
+     "note": "not found: Toyota Canada spec PDF has no axle weights or distribution; cars.com and guideautoweb list none; Car and Driver and MotorTrend test pages could not be opened (fetch blocked)"
+    },
+    "cg_height_m": {
+     "value": 0.5466,
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "TOYOTA,CAMRY,2019,4 DR,FWD ... STATIC_STABI_FACTOR=1.4568, ROLLOVER_STARS=5",
+     "note": "computed: cg_height = mean(track_front, track_rear) / (2 x SSF), using the tracks in this file (NHTSA's own measured track for its test vehicle is not in the CSV). SSF 1.4568."
+    },
+    "yaw_inertia_kgm2": {
+     "value": null,
+     "note": "estimate: NHTSA measured inertial data (Heydinger et al., SAE 1999-01-1336, 'data through November 1998', 496 entries) covers vehicles measured up to 1998 only, so it has no entry for this generation; the full table is not openly published (TRID record says copies come from NHTSA). No other published yaw inertia found. Left null for the game's rule of thumb."
+    },
+    "tire_size": {
+     "value": "205/65R16",
+     "source": "https://www.guideautoweb.com/en/makes/toyota/camry/2019/specifications/le/",
+     "quote": "Tire size: P205/65VR16 (front and rear)",
+     "note": "Canadian LE size. The US LE lists P215/55VR17 (https://www.cars.com/research/toyota-camry-2019/specs/401541)"
+    },
+    "rolling_radius_m": {
+     "value": 0.3364,
+     "source": "https://www.guideautoweb.com/en/makes/toyota/camry/2019/specifications/le/",
+     "quote": "Tire size: P205/65VR16 (front and rear)",
+     "note": "computed from 205/65R16; unloaded nominal radius"
+    },
+    "steering_ratio": {
+     "value": null,
+     "note": "not found: not on the Toyota Canada spec PDF, guideautoweb (lists only 'rack and pinion') or cars.com ('Steering Ratio (:1), Overall: N/A'); the Toyota US spec PDF returned 403"
+    },
+    "turning_circle_m": {
+     "value": 11.4,
+     "source": "https://toyotacanada.scene7.com/is/content/toyotacanada/2019_Toyota_Camry__LE_SE_XLE_XSEpdf?bfc=off&$?cdh=attachment",
+     "quote": "Turning Circle m. (ft.) 11.4 (37.4)",
+     "note": "LE column; Toyota does not say curb-to-curb or wall-to-wall. cars.com lists 37 ft as 'Turning Diameter - Curb to Curb'"
+    },
+    "engine_torque_Nm": {
+     "value": 250,
+     "source": "https://toyotacanada.scene7.com/is/content/toyotacanada/2019_Toyota_Camry__LE_SE_XLE_XSEpdf?bfc=off&$?cdh=attachment",
+     "quote": "Torque (N.m) 184 (250) @ 5000",
+     "note": "184 lb-ft = 250 N·m; guideautoweb gives 249 N-m"
+    },
+    "engine_power_kW": {
+     "value": 151,
+     "source": "https://toyotacanada.scene7.com/is/content/toyotacanada/2019_Toyota_Camry__LE_SE_XLE_XSEpdf?bfc=off&$?cdh=attachment",
+     "quote": "Horsepower (kW) 203 (151) @ 6600"
+    },
+    "drivetrain": {
+     "value": "FWD",
+     "source": "https://www.guideautoweb.com/en/makes/toyota/camry/2019/specifications/le/",
+     "quote": "Drivetrain: FWD"
+    },
+    "transmission": {
+     "value": 8,
+     "source": "https://toyotacanada.scene7.com/is/content/toyotacanada/2019_Toyota_Camry__LE_SE_XLE_XSEpdf?bfc=off&$?cdh=attachment",
+     "quote": "8-speed Direct Shift Automatic Transmission"
+    }
+   }
+  },
+  "suv": {
+   "model": "2019 Chevrolet Trax LS AWD, 1.4 L turbo four, 6-speed automatic",
+   "fields": {
+    "curb_mass_kg": {
+     "value": 1481.9,
+     "source": "https://www.cars.com/research/chevrolet-trax-2019/specs/400070/",
+     "quote": "Base Curb Weight: 3,267 lbs [AWD 4dr LS]",
+     "note": "converted from lb; GM media spec pages (media.chevrolet.com, media.gm.ca) now redirect or return 403"
+    },
+    "gvwr_kg": {
+     "value": null,
+     "range_kg": [
+      1944.1,
+      1989.9
+     ],
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "CHEVROLET,TRAX,2019,SUV,AWD ... MIN_GROSS_WEIGHT=4286, MAX_GROSS_WEIGHT=4387",
+     "note": "cars.com page lists no GVWR; NHTSA gives a range not mapped to trims"
+    },
+    "wheelbase_m": {
+     "value": 2.5552,
+     "source": "https://www.velocityjournal.com/models/32456/specifications",
+     "quote": "Wheelbase: 100.6",
+     "note": "inches (page gives no unit; matches cars.com '101 in'); converted"
+    },
+    "track_front_m": {
+     "value": 1.5392,
+     "source": "https://www.velocityjournal.com/models/32456/specifications",
+     "quote": "Front track width: 60.6",
+     "note": "inches; cars.com rounds to 61 in"
+    },
+    "track_rear_m": {
+     "value": 1.5392,
+     "source": "https://www.velocityjournal.com/models/32456/specifications",
+     "quote": "Rear track width: 60.6",
+     "note": "inches"
+    },
+    "front_weight_share": {
+     "value": null,
+     "note": "not found: cars.com AWD LT page: 'Curb Weight - Front: N/A', 'Curb Weight - Rear: N/A' (https://www.cars.com/research/chevrolet-trax-2019/specs/400071/); GM spec pages unreachable"
+    },
+    "cg_height_m": {
+     "value": 0.636,
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "CHEVROLET,TRAX,2019,SUV,AWD ... STATIC_STABI_FACTOR=1.21, ROLLOVER_STARS=4",
+     "note": "computed: cg_height = mean(track_front, track_rear) / (2 x SSF), using the tracks in this file (NHTSA's own measured track for its test vehicle is not in the CSV). SSF 1.21 (AWD row; FWD is 1.18)."
+    },
+    "yaw_inertia_kgm2": {
+     "value": null,
+     "note": "estimate: NHTSA measured inertial data (Heydinger et al., SAE 1999-01-1336, 'data through November 1998', 496 entries) covers vehicles measured up to 1998 only, so it has no entry for this generation; the full table is not openly published (TRID record says copies come from NHTSA). No other published yaw inertia found. Left null for the game's rule of thumb."
+    },
+    "tire_size": {
+     "value": "205/70R16",
+     "source": "https://www.cars.com/research/chevrolet-trax-2019/specs/400070/",
+     "quote": "Front Tire Size: P205/70R16; Rear Tire Size: P205/70R16"
+    },
+    "rolling_radius_m": {
+     "value": 0.3467,
+     "source": "https://www.cars.com/research/chevrolet-trax-2019/specs/400070/",
+     "quote": "Front Tire Size: P205/70R16; Rear Tire Size: P205/70R16",
+     "note": "computed from 205/70R16; unloaded nominal radius"
+    },
+    "steering_ratio": {
+     "value": null,
+     "note": "not found: cars.com: 'Steering Ratio (:1), Overall: N/A'; velocityjournal lists none; search snippets show auto123 giving 16.1:1 but auto123 spec pages return 404, so it was not opened and is not used"
+    },
+    "turning_circle_m": {
+     "value": 10.67,
+     "source": "https://www.cars.com/research/chevrolet-trax-2019/specs/400070/",
+     "quote": "Turning diameter, curb-to-curb: 35 ft",
+     "note": "curb-to-curb diameter; cars.com rounds to whole feet"
+    },
+    "engine_torque_Nm": {
+     "value": 201.0,
+     "source": "https://www.cars.com/research/chevrolet-trax-2019/specs/400070/",
+     "quote": "SAE Net Torque @ RPM: 148 @ 1850",
+     "note": "converted from lb-ft"
+    },
+    "engine_power_kW": {
+     "value": 102.9,
+     "source": "https://www.cars.com/research/chevrolet-trax-2019/specs/400070/",
+     "quote": "SAE Net Horsepower @ RPM: 138 @ 4900",
+     "note": "converted from hp"
+    },
+    "drivetrain": {
+     "value": "AWD",
+     "source": "https://www.cars.com/research/chevrolet-trax-2019/specs/400070/",
+     "quote": "Drivetrain: All Wheel Drive"
+    },
+    "transmission": {
+     "value": 6,
+     "source": "https://www.cars.com/research/chevrolet-trax-2019/specs/400070/",
+     "quote": "Transmission Options: 6-Speed A/T"
+    }
+   }
+  },
+  "bigsuv": {
+   "model": "2019 Chevrolet Tahoe LT 4WD, 5.3 L V8, 6-speed automatic",
+   "fields": {
+    "curb_mass_kg": {
+     "value": 2541.0,
+     "source": "https://www.iseecars.com/car/2019-chevrolet-tahoe-specs",
+     "quote": "4x4 LT 4dr SUV: Curb Weight 5602 (lbs)",
+     "note": "converted from lb. CONFLICT: cars.com 4WD LT axle weights sum to 5,456 lb (2,848 + 2,608); NHTSA CSV CURB_WEIGHT for its 2019 Tahoe 4WD row is 5414. GM's own spec page is unreachable"
+    },
+    "gvwr_kg": {
+     "value": 3311.2,
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "Gross Vehicle Weight Rating: 7,300 lbs [4WD 4dr LT]",
+     "note": "converted from lb; NHTSA range 6800-7300 lb"
+    },
+    "wheelbase_m": {
+     "value": 2.9464,
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "Wheelbase: 116 in",
+     "note": "converted"
+    },
+    "track_front_m": {
+     "value": 1.745,
+     "source": "https://www.velocityjournal.com/models/32210/specifications",
+     "quote": "Front Track: 68.7",
+     "note": "inches (no unit on page); same for all configs"
+    },
+    "track_rear_m": {
+     "value": 1.745,
+     "source": "https://www.velocityjournal.com/models/32210/specifications",
+     "quote": "Rear Track: 68.7",
+     "note": "inches"
+    },
+    "front_weight_share": {
+     "value": 0.522,
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "Curb Weight - Front: 2,848 lbs; Curb Weight - Rear: 2,608 lbs",
+     "note": "computed 2848/(2848+2608); the axle sum (5,456 lb) is lower than the 5,602 lb curb mass used above"
+    },
+    "cg_height_m": {
+     "value": 0.7587,
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "CHEVROLET,TAHOE,2019,SUV,4WD ... STATIC_STABI_FACTOR=1.15, ROLLOVER_STARS=3",
+     "note": "computed: cg_height = mean(track_front, track_rear) / (2 x SSF), using the tracks in this file (NHTSA's own measured track for its test vehicle is not in the CSV). SSF 1.15."
+    },
+    "yaw_inertia_kgm2": {
+     "value": null,
+     "note": "estimate: NHTSA measured inertial data (Heydinger et al., SAE 1999-01-1336, 'data through November 1998', 496 entries) covers vehicles measured up to 1998 only, so it has no entry for this generation; the full table is not openly published (TRID record says copies come from NHTSA). No other published yaw inertia found. Left null for the game's rule of thumb."
+    },
+    "tire_size": {
+     "value": "265/65R18",
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "Front Tire Size: P265/65R18"
+    },
+    "rolling_radius_m": {
+     "value": 0.4009,
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "Front Tire Size: P265/65R18",
+     "note": "computed from 265/65R18; unloaded nominal radius"
+    },
+    "steering_ratio": {
+     "value": null,
+     "note": "not found: cars.com: 'Steering Ratio (:1), Overall: N/A'; velocityjournal and iSeeCars list none; search snippets cite auto123/carcostcanada '17.3 on centre' but those pages returned 404/403, so they were not opened and are not used"
+    },
+    "turning_circle_m": {
+     "value": 11.89,
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "Turning Diameter - Curb to Curb: 39 ft",
+     "note": "curb-to-curb, whole-foot rounding"
+    },
+    "engine_torque_Nm": {
+     "value": 519.0,
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "SAE Net Torque @ RPM: 383 @ 4100",
+     "note": "converted from lb-ft"
+    },
+    "engine_power_kW": {
+     "value": 264.7,
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "SAE Net Horsepower @ RPM: 355 @ 5600",
+     "note": "converted from hp"
+    },
+    "drivetrain": {
+     "value": "4WD",
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400413/",
+     "quote": "Four Wheel Drive",
+     "note": "transfer-case modes not verified on a GM page"
+    },
+    "transmission": {
+     "value": 6,
+     "source": "https://www.cars.com/research/chevrolet-tahoe-2019/specs/400414",
+     "quote": "Transmission Options: 6-Speed A/T"
+    }
+   }
+  },
+  "van": {
+   "model": "2019 Dodge Grand Caravan SE/SXT, 3.6 L V6, 6-speed automatic, FWD (US spec sheet)",
+   "fields": {
+    "curb_mass_kg": {
+     "value": 2050,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "U.S. Curb Weight, lbs. (kg) 4,510 (2,050)",
+     "note": "Stellantis media 2019 Dodge Grand Caravan Specifications PDF (2019_DG_Grand_Caravan_SP.pdf), from press kit https://media.stellantisnorthamerica.com/newsrelease.do?id=20108&mid=58"
+    },
+    "gvwr_kg": {
+     "value": 2744.2,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Gross Vehicle Weight Rating (GVWR), lbs. (kg) 6,050 (2,744.2)"
+    },
+    "wheelbase_m": {
+     "value": 3.0782,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Wheelbase 121.2 (3,078.2)"
+    },
+    "track_front_m": {
+     "value": 1.6655,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Track — Front 65.6 (1,665.5)"
+    },
+    "track_rear_m": {
+     "value": 1.647,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Track — Rear 64.8 (1,647.0)"
+    },
+    "front_weight_share": {
+     "value": 0.56,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Weight Distribution % F/R 56/44"
+    },
+    "cg_height_m": {
+     "value": 0.6678,
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "DODGE,GRAND CARAVAN,2019,VAN,FWD ... STATIC_STABI_FACTOR=1.24, ROLLOVER_STARS=4",
+     "note": "computed: cg_height = mean(track_front, track_rear) / (2 x SSF), using the tracks in this file (NHTSA's own measured track for its test vehicle is not in the CSV). SSF 1.24."
+    },
+    "yaw_inertia_kgm2": {
+     "value": null,
+     "note": "estimate: NHTSA measured inertial data (Heydinger et al., SAE 1999-01-1336, 'data through November 1998', 496 entries) covers vehicles measured up to 1998 only, so it has no entry for this generation; the full table is not openly published (TRID record says copies come from NHTSA). No other published yaw inertia found. Left null for the game's rule of thumb."
+    },
+    "tire_size": {
+     "value": "225/65R17",
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Standard — Grand Caravan SE, SXT Size and Type 225/65R17, All-season"
+    },
+    "rolling_radius_m": {
+     "value": 0.3621,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Standard — Grand Caravan SE, SXT Size and Type 225/65R17, All-season",
+     "note": "computed from 225/65R17; unloaded nominal radius"
+    },
+    "steering_ratio": {
+     "value": 14.3,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "STEERING Type Power rack and pinion Overall Ratio 14.3:1"
+    },
+    "turning_circle_m": {
+     "value": 11.92,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Turning Diameter (curb-to-curb) 39.1 ft. (11.92 m)",
+     "note": "curb-to-curb"
+    },
+    "engine_torque_Nm": {
+     "value": 353,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Torque (SAE net) 260 lb.-ft. (353 N•m) @ 4,400 rpm"
+    },
+    "engine_power_kW": {
+     "value": 211,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Power (SAE net) 283 hp (211 kW) @ 6,400 rpm"
+    },
+    "drivetrain": {
+     "value": "FWD",
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "Layout Transverse front engine, front-wheel drive"
+    },
+    "transmission": {
+     "value": 6,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20106",
+     "quote": "TRANSMISSION: 62TE, AUTOMATIC, SIX-SPEED OVERDRIVE"
+    }
+   }
+  },
+  "pickup": {
+   "model": "2019 Ford F-150 XLT SuperCrew 5.5 ft box 4x4, 3.3 L V6 (base engine), 6-speed automatic",
+   "fields": {
+    "curb_mass_kg": {
+     "value": 2163.6,
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "Base Curb Weight: 4,770 lbs [XLT 4WD SuperCrew 5.5' Box]",
+     "note": "converted from lb. Ford media spec PDFs (media.ford.com) return 403 or redirect. Engine chosen because the published weights are for the trim's standard 3.3 L; the 2.7 L / 3.5 L EcoBoost are also common in Canada but no axle weights were found for them"
+    },
+    "gvwr_kg": {
+     "value": 2948.4,
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "Gross Vehicle Weight Rating: 6,500 lbs",
+     "note": "converted; NHTSA range for 2019 SuperCrew 4x4 is 6280-7850 lb"
+    },
+    "wheelbase_m": {
+     "value": 3.683,
+     "source": "https://www.velocityjournal.com/models/32311/specifications",
+     "quote": "Wheelbase: 145.0",
+     "note": "inches; cars.com also '145 in'"
+    },
+    "track_front_m": {
+     "value": 1.717,
+     "source": "https://www.velocityjournal.com/models/32311/specifications",
+     "quote": "Front track: 67.6 (73.9 for Raptor only)",
+     "note": "inches"
+    },
+    "track_rear_m": {
+     "value": 1.717,
+     "source": "https://www.velocityjournal.com/models/32311/specifications",
+     "quote": "Rear track: 67.6 (73.6 for Raptor only)",
+     "note": "inches"
+    },
+    "front_weight_share": {
+     "value": 0.5925,
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "Curb Weight - Front: 2,826 lbs; Curb Weight - Rear: 1,944 lbs",
+     "note": "computed 2826/4770"
+    },
+    "cg_height_m": {
+     "value": 0.7214,
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "FORD,F-150 SUPER CREW,2019,PU/CC,4x4 ... STATIC_STABI_FACTOR=1.19, ROLLOVER_STARS=4",
+     "note": "computed: cg_height = mean(track_front, track_rear) / (2 x SSF), using the tracks in this file (NHTSA's own measured track for its test vehicle is not in the CSV). SSF 1.19 (NHTSA does not split by engine)."
+    },
+    "yaw_inertia_kgm2": {
+     "value": null,
+     "note": "estimate: NHTSA measured inertial data (Heydinger et al., SAE 1999-01-1336, 'data through November 1998', 496 entries) covers vehicles measured up to 1998 only, so it has no entry for this generation; the full table is not openly published (TRID record says copies come from NHTSA). No other published yaw inertia found. Left null for the game's rule of thumb."
+    },
+    "tire_size": {
+     "value": "265/70R17",
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "Front Tire Size: P265/70SR17; Rear Tire Size: P265/70SR17"
+    },
+    "rolling_radius_m": {
+     "value": 0.4014,
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "Front Tire Size: P265/70SR17; Rear Tire Size: P265/70SR17",
+     "note": "computed from 265/70R17; unloaded nominal radius"
+    },
+    "steering_ratio": {
+     "value": null,
+     "note": "not found: cars.com: 'Steering Ratio (:1), Overall: N/A'; velocityjournal lists none; Ford media spec PDFs return 403"
+    },
+    "turning_circle_m": {
+     "value": 14.63,
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "Turning Diameter - Curb to Curb: 48 ft",
+     "note": "curb-to-curb, whole-foot rounding"
+    },
+    "engine_torque_Nm": {
+     "value": 359.0,
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "SAE Net Torque @ RPM: 265 @ 4000",
+     "note": "converted from lb-ft"
+    },
+    "engine_power_kW": {
+     "value": 216.3,
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "SAE Net Horsepower @ RPM: 290 @ 6500",
+     "note": "converted from hp"
+    },
+    "drivetrain": {
+     "value": "4x4",
+     "source": "https://www.cars.com/research/ford-f_150-2019/specs/403561/",
+     "quote": "Four Wheel Drive",
+     "note": "transfer-case type not verified on a Ford page"
+    },
+    "transmission": {
+     "value": 6,
+     "source": "https://www.fueleconomy.gov/ws/rest/vehicle/menu/options?year=2019&make=Ford&model=F150%20Pickup%204WD%20FFV",
+     "quote": "Auto (S6), 6 cyl, 3.3 L",
+     "note": "EPA listing for the 2019 F150 Pickup 4WD FFV"
+    }
+   }
+  },
+  "hd": {
+   "model": "2019 Ram 2500 Tradesman Crew Cab 6 ft 4 in box 4x4, 6.4 L HEMI V8, 8-speed automatic, 3.73 axle",
+   "fields": {
+    "curb_mass_kg": {
+     "value": 3004.1,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20529",
+     "quote": "RAM 2500 4X4 CREW CAB: 6-ft. 4-in. BOX | 6.4L V-8 HEMI A8 8HP75 SRW 3.73 10000 3380 6622.9 3827.81 2795.09 (columns GVWR, PAYLOAD, BASE WEIGHT TOTAL, FRONT, REAR)",
+     "note": "Stellantis 2019 Ram HD Towing Chart PDF; base weight, converted from lb. cars.com Tradesman 4x4 Crew 6'4\" lists 6,622 lb"
+    },
+    "gvwr_kg": {
+     "value": 4535.9,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20529",
+     "quote": "... SRW 3.73 10000 3380 6622.9 ... (GVWR column = 10000)",
+     "note": "converted; a 9,900 lb GVWR row also exists"
+    },
+    "wheelbase_m": {
+     "value": 3.785,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20528",
+     "quote": "CREW CAB 149.5-IN. WB, 6-FT. 4-IN. BOX (2500) 4x2 4x4 Wheelbase 149 (3,785) 149 (3,785)",
+     "note": "Stellantis media 2019 Ram 2500 & 3500 Heavy Duty Specifications PDF, press kit https://media.stellantisnorthamerica.com/newsrelease.do?id=20527&mid="
+    },
+    "track_front_m": {
+     "value": 1.745,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20528",
+     "quote": "Track Width – Front 68.7 (1,745) 68.7 (1,745)"
+    },
+    "track_rear_m": {
+     "value": 1.729,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20528",
+     "quote": "Track Width – Rear 68.1 (1,729) 68.1 (1,729)"
+    },
+    "front_weight_share": {
+     "value": 0.578,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20529",
+     "quote": "BASE WEIGHT TOTAL 6622.9, FRONT 3827.81, REAR 2795.09",
+     "note": "computed 3827.81/6622.9"
+    },
+    "cg_height_m": {
+     "value": 0.8042,
+     "source": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+     "quote": "RAM,2500,2020,PU/CC,4WD ... STATIC_STABI_FACTOR=1.08",
+     "note": "NEAREST YEAR: NHTSA's 2019 Ram 2500 rows have SSF 0 (not rated); 2020 is the same generation (new for 2019) and is used. computed: cg_height = mean(track_front, track_rear) / (2 x SSF), using the tracks in this file (NHTSA's own measured track for its test vehicle is not in the CSV). SSF 1.08. For reference NHTSA 2018 (previous generation) 4WD was 1.13"
+    },
+    "yaw_inertia_kgm2": {
+     "value": null,
+     "note": "estimate: NHTSA measured inertial data (Heydinger et al., SAE 1999-01-1336, 'data through November 1998', 496 entries) covers vehicles measured up to 1998 only, so it has no entry for this generation; the full table is not openly published (TRID record says copies come from NHTSA). No other published yaw inertia found. Left null for the game's rule of thumb."
+    },
+    "tire_size": {
+     "value": "LT245/70R17",
+     "source": "https://www.cars.com/research/ram-2500-2019/specs/405140/",
+     "quote": "Front Tire Size: LT245/70RR17; Rear Tire Size: LT245/70RR17",
+     "note": "'RR17' is cars.com's typo for R17; the Stellantis PDFs list only optional sizes"
+    },
+    "rolling_radius_m": {
+     "value": 0.3874,
+     "source": "https://www.cars.com/research/ram-2500-2019/specs/405140/",
+     "quote": "Front Tire Size: LT245/70RR17; Rear Tire Size: LT245/70RR17",
+     "note": "computed from 245/70R17; unloaded nominal radius"
+    },
+    "steering_ratio": {
+     "value": null,
+     "note": "not found: Stellantis spec lists only 'STEERING Power-Assist Hydraulic Assist'; cars.com 'Steering Ratio (:1), Overall: N/A'"
+    },
+    "turning_circle_m": {
+     "value": 14.6,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20528",
+     "quote": "CREW CAB 149.5-IN. WB ... Turning Diameter 14.6 (47.9) 14.6 (47.9)",
+     "note": "metres (feet); Stellantis does not say curb or wall; cars.com lists 48 ft as 'Turning Diameter - Curb to Curb'"
+    },
+    "engine_torque_Nm": {
+     "value": 582,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20528",
+     "quote": "Torque 429 lb.-ft. (582 N•M) at 4,000 RPM"
+    },
+    "engine_power_kW": {
+     "value": 306,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20528",
+     "quote": "Power 410 hp (306 Kw) @ 5,600 RPM"
+    },
+    "drivetrain": {
+     "value": "4x4 (transfer case)",
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20528",
+     "quote": "Model 2WD 4WD Layout Longitudinal, front engine Longitudinal, front engine, transfer case"
+    },
+    "transmission": {
+     "value": 8,
+     "source": "https://media.stellantisnorthamerica.com/view-spec.do?id=20528",
+     "quote": "TRANSMISSION: ZF 8HP75 — AUTOMATIC EIGHT-SPEED Availability 6.4-liter HEMI V-8"
+    }
+   }
+  }
+ }
+}
