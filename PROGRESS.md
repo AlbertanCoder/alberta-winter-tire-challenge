@@ -80,6 +80,13 @@ Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true 
 7. ?test=1 hooks + Playwright e2e (heavy job: lock first, 1 worker) over every scenario x {winter, all-season} x
    {ESC on, off}.
 
+## Phase 2 status (2026-10-29, WIP)
+- Step 1 done: js/road.js + test/road.test.js.
+- Step 2 written, NOT yet run in a browser: index.html loads the 5 physics scripts; step() runs WTPhys on a 1 ms
+  accumulator; interim input mapping (v1 steering cap, GAS = 0.4 throttle, v1-style hold-speed cruise until Phase 3);
+  seeded traffic respawn; ESC and traction-control toggles in run settings. node --check on the game script: OK.
+  NEXT: open it headless (Playwright, under the lock, 1 worker) and fix any console errors; then steps 3-7.
+
 ## First Fable check (2026-10-29, after Phase 1 build): findings and answers
 | # | Finding | Outcome |
 |---|---|---|

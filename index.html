@@ -291,6 +291,8 @@ ol.refs li{overflow-wrap:anywhere}
       <div class="ctl"><span class="ctl-label">Time of day</span><div class="seg" id="runTodSeg"></div></div>
       <div class="ctl"><span class="ctl-label">Tread</span><div class="seg" id="runTreadSeg"></div></div>
       <div class="ctl"><span class="ctl-label">ABS</span><div class="seg" id="runAbsSeg"></div><span class="hint">Off = older car without ABS: hard braking locks the wheels</span></div>
+      <div class="ctl"><span class="ctl-label">Stability control (ESC)</span><div class="seg" id="runEscSeg"></div><span class="hint">Required on new light vehicles in Canada built since September 1, 2011 (CMVSS 126). Needs ABS.</span></div>
+      <div class="ctl"><span class="ctl-label">Traction control</span><div class="seg" id="runTcsSeg"></div><span class="hint">Stops the driven wheels spinning. Needs ABS.</span></div>
     </div>
     <p class="hint" id="introGhost" hidden></p>
     <div class="row stick"><button type="button" class="btn btn-primary btn-big" id="goBtn">Drive</button><button type="button" class="btn" id="introMapBtn">Back to map</button></div>
@@ -418,6 +420,11 @@ ol.refs li{overflow-wrap:anywhere}
 </aside>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/grip.js"></script>
+<script src="js/vehicles.js"></script>
+<script src="js/tire-params.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/road.js"></script>
 <script>
 (function(){
 "use strict";
@@ -582,7 +589,7 @@ const SCEN = [
 function condAt(sc, s){ if (sc.zones) for (const z of sc.zones) if (s >= z[0] && s < z[1]) return z[2]; return sc.cond; }
 
 /* ================= State ================= */
-const S = {tire:'allseason', vehicle:'suv', drive:'awd', idx:0, runTire:'allseason', runDrive:'awd', runAbs:true, runTread:'new', runWeather:'clear', runTod:'day', sound:false,
+const S = {tire:'allseason', vehicle:'suv', drive:'awd', idx:0, runTire:'allseason', runDrive:'awd', runAbs:true, runEsc:true, runTcs:true, runTread:'new', runWeather:'clear', runTod:'day', sound:false,
   results:SCEN.map(() => ({})), order:SCEN.map(() => []), recs:SCEN.map(() => null), recsByTire:SCEN.map(() => ({}))};
 const compOf = t => t === 'winter' ? 'allseason' : 'winter';
 const input = {left:false, right:false, gas:false, brake:false};
@@ -1778,6 +1785,10 @@ function prepRun(){
     crossLight:null, pedState:0, deerT:0, rec:[], ghostRec:S.recs[S.idx], gi:0, endWait:0, outcome:null, green:false,
     weather:S.runWeather || 'clear', T:runTemp(sc, S.runWeather), arcs:arcsOf(sc.path), stopT:0, elkGap:0, elkSt:null, elkGo:null, spinT:-1, wd:0, wdT:0, wdV:-99, trigS:null,
     finishS: sc.finishS || (sc.kind === 'curve' ? arcsOf(sc.path).slice(-1)[0].s1 + 40 : level.L - 25)};
+  { const grip = WTGrip.make(WTTireParams.fixes);
+    run.sim = WTPhys.createSim({vehicle:WTVehicles[S.vehicle], vehicleKey:S.vehicle, grip, params:WTTireParams, env:WTRoad.roadEnv(sc, P, grip, run.weather, sc.startS),
+      tire:S.runTire, tread:S.runTread, T:run.T, abs:S.runAbs, esc:S.runEsc, tcs:S.runTcs, drive:S.runDrive, x:p.x, z:p.z, psi:p.psi, u:sc.startV/3.6});
+    run.acc = 0; run.inp = {steer:0, throttle:0, brake:0, gear:'D'}; run.cruiseV = null; run.rng = WTPhys.rng(1000 + S.idx); }
   resetTraffic();
   const H = sc.hazard;
   if (level.ped){ level.pedOff = HW + 2.2; place(level.ped, P, H.s, level.pedOff); }
@@ -1807,57 +1818,41 @@ function poseCar(){
   car.userData.wheels.forEach(o => { if (o.front) o.steer.rotation.y = run.steer*.45; });
 }
 
-/* Physics: friction circle with ABS, traction limit on driven wheels, slope, drag */
+/* Physics v2 (js/physics.js): a fixed 1 ms step fed from an accumulator, so the frame rate never reaches the physics.
+   Inputs are sampled every 1 ms step. Interim input mapping until Phase 3 (analog inputs, no hidden cruise control). */
+const GAS_INTERIM = .4;   // throttle while GAS is held (interim; Phase 3 ramps it)
 function step(dt){
-  const r = run, sc = r.sc, cond = surfaceAt(sc, r.s, r.weather), th = Math.atan((sc.grade || 0)/100), kind = COND[cond].kind;
-  let gripMax = gripMu(S.runTire, cond, r.T, S.vehicle, S.runTread)*G*Math.cos(th);
-  if (r.slip && kind === 'ice') gripMax *= .85;
-  const gx = -G*Math.sin(th);
+  const r = run, sc = r.sc, sim = r.sim, st = sim.st, V = sim.vehicle;
   const target = (input.right ? 1 : 0) - (input.left ? 1 : 0);
   r.steer += clamp(target - r.steer, -dt*2.2, dt*2.2);
-  const P = PROF[VEH[S.vehicle].type], sp = Math.abs(r.v);
-  const curvMax = Math.min(Math.tan(.5)/P.wb, 4.5/Math.max(1, sp*sp)), curvDes = r.steer*curvMax;
-  let aLat = sp*sp*curvDes, fLong = 0, tag = '';
-  if (sc.kind === 'hill' && !r.green){ r.v = 0; r.gripUse = 0; r.tag = ''; return; }
   if (r.offroad){
     r.v = Math.sign(r.v)*Math.max(0, Math.abs(r.v) - 9*dt);
     r.x += -Math.sin(r.psi)*r.v*dt; r.z += -Math.cos(r.psi)*r.v*dt; r.gripUse = 1; r.tag = 'OFF THE ROAD'; return;
   }
-  // Curves are banked about 6%, so the bank carries part of the lateral load and the tires carry the rest (latT)
-  const bank = r.P[r.hint].k !== 0 ? G*.06 : 0, aLatAbs = Math.abs(aLat), aSign = Math.sign(aLat);
-  let latT = Math.max(0, aLatAbs - bank);
-  const drag = sp > .05 ? .05 + .0004*sp*sp : 0, locked = input.brake && S.runAbs === false;
-  if (locked){
-    // No ABS: wheels lock, sliding grip all goes to braking and the car slides straight along its heading
-    const avail = gripMax*lockEff(cond); aLat = 0; latT = 0;
-    if (sp < .3 && avail >= Math.abs(gx)){ r.v = 0; fLong = 0; }
-    else { const dir = r.v !== 0 ? Math.sign(r.v) : Math.sign(gx); fLong = -dir*avail; if (sp > .3) tag = 'LOCKED'; }
-  } else if (input.brake){
-    const lat = Math.min(latT, gripMax*.95), avail = Math.sqrt(Math.max(0, gripMax*gripMax - lat*lat))*absEff(cond);
-    if (latT > lat + .01){ tag = 'SLIDING'; latT = lat; aLat = aSign*(Math.min(aLatAbs, bank) + lat); } else if (sp > .5) tag = 'ABS';
-    if (sp < .3 && avail >= Math.abs(gx)){ r.v = 0; fLong = 0; tag = ''; }
-    else { const dir = r.v !== 0 ? Math.sign(r.v) : Math.sign(gx); fLong = -dir*avail; }
-  } else {
-    // Driven axle's own friction circle: cornering leaves less grip for traction.
-    // Spinning tires grip about 15% less than rolling ones (estimate), so easing off helps.
-    const driveMax = driveShare()*Math.sqrt(Math.max(0, gripMax*gripMax - latT*latT));
-    if (input.gas) fLong = 2.2;
-    else if (!sc.noCruise && r.v > .5) fLong = Math.max(-.5, drag - gx);
-    if (fLong > driveMax){ fLong = driveMax*.85; tag = 'WHEELSPIN'; }
-    const dem = Math.hypot(fLong, latT);
-    if (dem > gripMax){ const k = gripMax/dem; fLong *= k; latT *= k; aLat = aSign*(Math.min(aLatAbs, bank) + latT); if (latT > .3) tag = 'SLIDING'; }
+  r.acc += dt;
+  const hold = sc.kind === 'hill' && !r.green, inp = r.inp;
+  while (r.acc >= WTPhys.DT - 1e-9){
+    r.acc -= WTPhys.DT;
+    // v1's steering cap (about 0.45 g at speed), as a road-wheel angle, then through the steering ratio (positive = left)
+    const sp = Math.max(1, Math.abs(st.u)), dMax = Math.min(V.maxWheelDeg*Math.PI/180, Math.atan(V.L*4.5/(sp*sp)));
+    inp.steer = -r.steer*dMax*180/Math.PI*V.steerRatio;
+    inp.brake = input.brake || hold ? 1 : 0;
+    if (input.gas && !hold){ inp.throttle = GAS_INTERIM; r.cruiseV = null; }
+    else if (!sc.noCruise && !input.brake && st.u > .5){ if (r.cruiseV == null) r.cruiseV = st.u; inp.throttle = clamp((r.cruiseV - st.u)*1.5, 0, 1); }
+    else { inp.throttle = 0; r.cruiseV = null; }
+    sim.step(inp);
   }
-  const dem2 = Math.hypot(fLong, latT);
-  if (tag === 'SLIDING') r.slip = true; else if (dem2 < .7*gripMax) r.slip = false;
-  r.gripUse = Math.min(1.15, (input.brake && sp > .3 ? Math.max(dem2, gripMax) : dem2)/gripMax); r.tag = tag;
-  const vPrev = r.v;
-  r.v += (fLong + gx - Math.sign(r.v)*drag)*dt;
-  if (input.brake && vPrev !== 0 && Math.sign(r.v) !== Math.sign(vPrev)) r.v = 0;
-  const curv = locked ? 0 : sp > .5 ? aLat/(sp*sp) : curvDes;
-  r.psi -= r.v*curv*dt;
-  if (S.runDrive === 'rwd' && input.gas && tag === 'WHEELSPIN' && Math.abs(r.steer) > .1 && r.v > 2) r.psi -= Math.sign(r.steer)*.45*dt;
-  r.vis = locked ? r.vis*(1 - Math.min(1, dt*6)) : clamp((curvDes - curv)*sp*.3, -.35, .35);
-  r.x += -Math.sin(r.psi)*r.v*dt; r.z += -Math.cos(r.psi)*r.v*dt;
+  r.x = st.x; r.z = st.z; r.psi = st.psi; r.v = st.u; r.vis = 0;
+  // Grip meter and tags from the four wheels
+  let gu = 0, locked = false, slide = false, spin = false;
+  for (const w of st.w){
+    const f = Math.hypot(w.Fx, w.Fy)/Math.max(1, w.Fmax); if (f > gu) gu = f;
+    if (w.locked) locked = true;
+    if (Math.abs(st.u) > 1 && Math.hypot(w.kap, w.alp) > 1.5*w.kpk) slide = true;
+    if (w.kap > Math.max(.15, 2*w.kpk)) spin = true;
+  }
+  r.gripUse = gu; r.slip = slide;
+  r.tag = locked ? 'LOCKED' : st.abs ? 'ABS' : spin ? 'WHEELSPIN' : slide ? 'SLIDING' : (st.esc || st.tcs) ? 'ESC' : '';
   const loc = locate(r.P, r.x, r.z, r.hint); r.hint = loc.i; r.s = loc.s; r.off = loc.off;
   if (Math.abs(r.off) > HW + 1.15 && !r.offroad){ r.offroad = true; r.offV = Math.abs(r.v); r.offSide = Math.sign(r.off); }
 }
@@ -1884,7 +1879,7 @@ function hazards(dt){
     const t = level.traffic[i];
     if (!t.obj.visible) continue;
     t.s -= t.v*dt;
-    if (t.s < r.s - 70){ const ns = r.s + 260 + Math.random()*90; if (ns < level.L - 6){ t.s = ns; } else { t.obj.visible = false; continue; } }
+    if (t.s < r.s - 70){ const ns = r.s + 260 + r.rng()*90; if (ns < level.L - 6){ t.s = ns; } else { t.obj.visible = false; continue; } }
     place(t.obj, r.P, t.s, t.off, Math.PI);
     if (overlap(cs0, cs1, t.s - t.len/2, t.s + t.len/2) && overlap(co0, co1, t.off - t.w/2, t.off + t.w/2)) crash('Collided with an oncoming vehicle. Closing speed ' + Math.round((Math.abs(r.v) + t.v)*3.6) + ' km/h', 'Head-on collision');
   }
@@ -2042,7 +2037,7 @@ function end(outcome, impact){
   if (run.phase !== 'drive') return;
   if (impact) run.v = 0;
   run.outcome = outcome; run.phase = 'ending'; run.endWait = 1.5;
-  Object.assign(outcome, {rt:run.rt, vTrig:run.vTrig, D:run.D, entryV:run.entryV, curveMax:run.curveMax, t:run.t, drive:S.runDrive, abs:S.runAbs, tread:S.runTread, weather:S.runWeather, tod:S.runTod});
+  Object.assign(outcome, {rt:run.rt, vTrig:run.vTrig, D:run.D, entryV:run.entryV, curveMax:run.curveMax, t:run.t, drive:S.runDrive, abs:S.runAbs, esc:S.runEsc, tcs:S.runTcs, tread:S.runTread, weather:S.runWeather, tod:S.runTod});
   S.results[S.idx][S.runTire] = outcome;
   const ord = S.order[S.idx]; if (ord.indexOf(S.runTire) < 0) ord.push(S.runTire);
   S.recs[S.idx] = {tire:S.runTire, rec:run.rec};
@@ -2091,7 +2086,7 @@ function renderMap(){
 function enterScen(i){
   const sc = SCEN[i];
   S.idx = i; S.runTire = S.tire; S.runDrive = S.drive;
-  S.runWeather = sc.weather || 'clear'; S.runTod = sc.tod || 'day'; S.runTread = 'new'; S.runAbs = true;
+  S.runWeather = sc.weather || 'clear'; S.runTod = sc.tod || 'day'; S.runTread = 'new'; S.runAbs = true; S.runEsc = true; S.runTcs = true;
   openIntro();
 }
 function openMap(){ syncSetup(); renderMap(); show('ovMap'); banner(''); }
@@ -2107,11 +2102,13 @@ function optButtons(el, opts, get, set, atmo){
   });
   el._get = get;
 }
-const runSegs = ['runWeatherSeg','runTodSeg','runTreadSeg','runAbsSeg'];
+const runSegs = ['runWeatherSeg','runTodSeg','runTreadSeg','runAbsSeg','runEscSeg','runTcsSeg'];
 optButtons($('runWeatherSeg'), Object.keys(WEATHER).map(k => [k, WEATHER[k].name]), () => S.runWeather, k => { S.runWeather = k; }, true);
 optButtons($('runTodSeg'), Object.keys(TOD).map(k => [k, TOD[k].name]), () => S.runTod, k => { S.runTod = k; }, true);
 optButtons($('runTreadSeg'), [['new','New'], ['half','Half worn'], ['limit','Near the limit']], () => S.runTread, k => { S.runTread = k; });
 optButtons($('runAbsSeg'), [['on','On'], ['off','Off']], () => S.runAbs ? 'on' : 'off', k => { S.runAbs = k === 'on'; });
+optButtons($('runEscSeg'), [['on','On'], ['off','Off']], () => S.runEsc ? 'on' : 'off', k => { S.runEsc = k === 'on'; });
+optButtons($('runTcsSeg'), [['on','On'], ['off','Off']], () => S.runTcs ? 'on' : 'off', k => { S.runTcs = k === 'on'; });
 function renderFacts(){
   const sc = SCEN[S.idx], w = S.runWeather, c0 = surfaceAt(sc, 0, w), c1 = sc.zones ? surfaceAt(sc, sc.zones[0][0], w) : c0;
   $('introFacts').innerHTML = '<span><b>' + COND[c0].name + '</b>' + (c1 !== c0 ? ', then <b>' + COND[c1].name.toLowerCase() + '</b>' : '') + '</span><span><b>' + deg(runTemp(sc, w)) + '</b></span><span>Limit <b>' + sc.limit + ' km/h</b></span>' + (sc.advisory ? '<span>Advisory <b>' + sc.advisory + ' km/h</b></span>' : '') + (sc.grade ? '<span><b>' + Math.abs(sc.grade) + '% ' + (sc.grade < 0 ? 'downhill' : 'uphill') + '</b></span>' : '');
