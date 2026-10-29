@@ -50,7 +50,19 @@ test('2. steady cornering: max lateral accel between 80% and 100% of peak mu x g
   assert.ok(K > 0, 'understeer gradient ' + K);
 });
 
-test.todo('3. FMVSS/CMVSS 126 sine with dwell, ESC on, every covered vehicle (needs 49 CFR 571.126 read first; not written yet)');
+test('3. FMVSS/CMVSS 126 sine with dwell (49 CFR 571.126), dry: every vehicle passes with ESC on; ESC off reported', () => {
+  const F = require('../scripts/fmvss126.js'), lines = [], fails = [];
+  // All seven are tested (the standard covers GVWR <= 4,536 kg; which of ours qualify waits on the vehicle research).
+  // The HD pickup uses the over-3,500 kg GVWR displacement limit (1.52 m): an estimate until its GVWR is sourced.
+  for (const key of Object.keys(VEH)) for (const esc of [true, false]){
+    const r = F.series(key, esc, key === 'hd');
+    const worst = Math.max(...r.runs.map(x => x.r1)), disp = Math.min(...r.runs.filter(x => x.amp >= 5*r.A).map(x => x.disp));
+    lines.push(`${key} ESC ${esc ? 'on ' : 'off'} A ${r.A} deg: ${r.pass ? 'pass' : 'fail'} (worst yaw 1 s after steer ${(worst*100).toFixed(0)}%, min displacement ${disp.toFixed(2)} m)`);
+    if (esc && !r.pass) fails.push(key);
+  }
+  console.log('  ' + lines.join('\n  '));
+  assert.deepEqual(fails, []);
+});
 
 test('4. front wheels locked at 50 km/h on packed snow: full steering turns the heading less than 2 deg in 1 s', () => {
   const s = sim({cond:'packed', u:50/3.6, abs:false, veh:{brakeFront:1}}), V = s.vehicle;
