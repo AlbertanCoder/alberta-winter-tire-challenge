@@ -4,7 +4,7 @@
   "private": true,
   "description": "Alberta Winter Tire Challenge. The game itself has no dependencies; these are dev tools only.",
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test \"test/**/*.test.js\"",
     "test:e2e": "playwright test --workers=1",
     "calibrate": "node scripts/calibrate.js",
     "validate": "node scripts/validate.js"

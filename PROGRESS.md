@@ -24,13 +24,37 @@ Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a sess
    Coordinate helpers first (body/world/road), then tire (combined-slip Magic Formula with a relaxation-length
    low-speed blend), wheel spin, loads with filtered accelerations, drivetrain, brakes/ABS/EBD, ESC, TCS.
    Fixed 1 ms step, seeded PRNG (mulberry32), no frame-rate dependence.
-2. `js/legacy-grip.js`: the grip tables and `stopRun()` lifted verbatim from index.html (the reference).
+2. `js/grip.js`: the grip tables and `stopRun()` lifted verbatim from index.html (the reference).
 3. `scripts/calibrate.js` -> `js/tire-params.js` + `docs/CALIBRATION.md`; `test/*.test.js` for tests 1-12.
 4. Then game integration, inputs, comparison/X-ray, road effects and scenarios, docs, media (phases 2-7).
 
 ## Session log
 - 2026-10-29 start: weekly usage 83% (resets 2026-11-03 04:00 Edmonton), 5h 37%. Free memory 0.9-2.1 GB
   (under the 2.34 GB floor). Playwright 1.64.1 installed 22:20 UTC; it uses the already-cached Chromium build 1248, so no browser download. CPU (thermal zone, approx) 75-85 C.
+
+## Phase 1 status (2026-10-29, work in progress, NOT done)
+Built: js/grip.js (v1 tables + legacy stopRun, verbatim), js/physics.js (4-wheel model, relaxation-length tire states,
+implicit wheel spin, combined-slip Magic Formula, filtered load transfer, gravity from road gradient per wheel, engine +
+automatic + creep, FWD/RWD/AWD/4x4, brakes + EBD, slip-band ABS, ESC, TCS, crosswind, ploughing drag),
+js/vehicles.js (INTERIM estimates), scripts/calibrate.js -> js/tire-params.js + docs/CALIBRATION.md, test/physics.test.js.
+Last `npm test`: 10 pass, 1 fail (test 1), 1 todo (test 3). `npm run calibrate` is deterministic (byte-identical re-run).
+Resume here, in this order:
+1. Test 1 fails only on gravel x winter ABS: -2.01% at 19 km/h, +2.05% at 100 km/h (limit 2%). Spread across speeds is 4%;
+   likely cause: at the start of each stop the ABS overshoots into lock, and on gravel a locked tire grips MORE, which helps
+   short stops most. Lowering the ABS cut-off speed to 0.5 m/s changed nothing (reverted). Next idea: a softer first
+   apply on every surface, then re-run calibrate.
+2. Test 3 (FMVSS/CMVSS 126 sine with dwell) is a todo: read 49 CFR 571.126 (S7.6 slowly increasing steer for A, S7.9 sine
+   with dwell, S5.2 criteria) and implement exactly; then tune ESC (generic logic in physics.js ESC_C) until every
+   covered vehicle passes with ESC on. Report ESC off without asserting.
+3. Vehicle research (brief 4.5): pick the real base model for each of the 7 types, source every parameter, replace
+   js/vehicles.js, match PROF wheelbase/width, re-run calibrate and tests.
+4. Cornering stiffness / peak slip / relaxation lengths / load sensitivity are labelled estimates in physics.js; find a
+   published source for cornering stiffness (brief 4.2) or keep them labelled.
+5. Performance test measured 4.08-4.88 ms per simulated second (limit 5): close; profile physics.js step() if it creeps.
+6. Write PHYSICS.md (equations + every parameter's source or "estimate"), then the first Fable check (brief section 10).
+Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true forward speed as their reference
+(real units estimate it); no Ackermann; one peak slip per surface for both directions; torque converter not modelled
+(full engine torque at launch); no engine braking; lateral aero from the car's own sideslip ignored.
 
 ## Open issues
 - Phase 0 rule slip: the Playwright install (2 packages, 2 s) started while free memory read 2.0 GB, under the 2.3 GB floor. Fixed by making `coord.js lock` refuse on low memory or CPU >= 90 C.
