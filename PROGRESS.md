@@ -41,8 +41,10 @@ Last `npm test`: 10 pass, 1 fail (test 1), 1 todo (test 3). `npm run calibrate` 
 Resume here, in this order:
 1. Test 1 fails only on gravel x winter ABS: -2.01% at 19 km/h, +2.05% at 100 km/h (limit 2%). Spread across speeds is 4%;
    likely cause: at the start of each stop the ABS overshoots into lock, and on gravel a locked tire grips MORE, which helps
-   short stops most. Lowering the ABS cut-off speed to 0.5 m/s changed nothing (reverted). Next idea: a softer first
-   apply on every surface, then re-run calibrate.
+   short stops most. Lowering the ABS cut-off speed to 0.5 m/s changed nothing (reverted). Faster release (ABS_C.DN)
+   trades gravel against fresh snow: DN 40 (current) gravel/winter +2.05%; DN 60 fresh/allweather +2.1%; DN 75
+   fresh/winter +2.3%; DN 100 gravel passes (-1.3% worst) but fresh/winter +2.4%. Root cause to fix: uneven ABS cycling
+   on loose surfaces (rising or flat force curves), not a single knob. Do not re-run this sweep.
 2. Test 3 (FMVSS/CMVSS 126 sine with dwell) is a todo: read 49 CFR 571.126 (S7.6 slowly increasing steer for A, S7.9 sine
    with dwell, S5.2 criteria) and implement exactly; then tune ESC (generic logic in physics.js ESC_C) until every
    covered vehicle passes with ESC on. Report ESC off without asserting.
