@@ -4,6 +4,10 @@
 (function(root, factory){ if (typeof module === 'object' && module.exports) module.exports = factory(); else root.WTRoad = factory(); })(typeof self !== 'undefined' ? self : this, function(){
 'use strict';
 const HW = 3.6, LANE = 1.8, BANK = .06;   // v1: road half-width, right-lane centre, curves banked 6%
+// Normal crown on straights: asphalt crowned at the centreline (of each roadway on divided highways), 0.02 m/m down to
+// each edge. Alberta Transportation, Highway Geometric Design Guide, ch. C (Feb 2022), C.1.2 and Table C-1-1a.
+// Simplification: crown switches straight to the curve's bank at the curve start (no superelevation runoff).
+const CROWN = .02;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // One sample per metre: {x, z, psi, k} with curvature k = +1/R for left curves, -1/R for right (index.html v1)
 function buildPath(def){
@@ -28,23 +32,25 @@ function locate(P, x, z, hint){
   return {i:best, s: best + (dx*-Math.sin(p.psi) + dz*-Math.cos(p.psi)), off: dx*Math.cos(p.psi) - dz*Math.sin(p.psi)};
 }
 // Physics environment for a scenario: surface from the v1 surfaceAt (by s), grade along the road, 6% bank on curves
-// (falling toward the inside of the curve). grip = WTGrip.make(fixes). The hint keeps locate() local and fast.
-function roadEnv(sc, P, grip, weather, s0){
+// (falling toward the inside of the curve), crown on straights (sc.crown in %, default 2). grip = WTGrip.make(fixes).
+// wind: optional function of time returning the wind velocity [x, z] in world axes, m/s. The hint keeps locate() local.
+function roadEnv(sc, P, grip, weather, s0, wind){
+  const crown = (sc.crown == null ? CROWN*100 : sc.crown)/100;
   let hint = Math.max(0, Math.floor(s0 || sc.startS || 0));
   const grade = (sc.grade || 0)/100;
   return {
     P,
     sample(x, z, out){
       const L = locate(P, x, z, hint); hint = L.i;
-      const p = P[L.i], dhdoff = p.k > 0 ? BANK : p.k < 0 ? -BANK : 0;
+      const p = P[L.i], dhdoff = p.k > 0 ? BANK : p.k < 0 ? -BANK : L.off >= 0 ? -crown : crown;
       out.cond = grip.surfaceAt(sc, L.s, weather);
       out.gx = grade*-Math.sin(p.psi) + dhdoff*Math.cos(p.psi);
       out.gz = grade*-Math.cos(p.psi) - dhdoff*Math.sin(p.psi);
       out.plough = 0; out.s = L.s; out.off = L.off;
       return out;
     },
-    wind:null
+    wind: wind ? (t, out) => { const w = wind(t); out.x = w[0]; out.z = w[1]; return out; } : null
   };
 }
-return {HW, LANE, BANK, buildPath, at, locate, roadEnv};
+return {HW, LANE, BANK, CROWN, buildPath, at, locate, roadEnv};
 });

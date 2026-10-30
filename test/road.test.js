@@ -28,3 +28,18 @@ test('road env: a car parked on an uphill grade rolls back; on a right curve the
   const right = [Math.cos(q.psi), -Math.sin(q.psi)], downhill = -(out.gx*right[0] + out.gz*right[1]);
   assert.ok(Math.abs(downhill - Road.BANK) < 1e-9, 'slope toward the right (inside of a right curve) = 6%: ' + downhill);
 });
+
+test('road env: straights are crowned 2% at the centreline (falling to each edge); black ice and no steering drifts to the edge', () => {
+  const sc = {cond:'black', T:-5, grade:0}, path = Road.buildPath([['s', 400]]), env = Road.roadEnv(sc, path, grip, 'clear', 10);
+  for (const off of [Road.LANE, -Road.LANE]){
+    const q = Road.at(path, 50, off), out = {}; env.sample(q.x, q.z, out);
+    const right = [Math.cos(q.psi), -Math.sin(q.psi)], dh = out.gx*right[0] + out.gz*right[1];
+    assert.ok(Math.abs(dh + Math.sign(off)*Road.CROWN) < 1e-9, 'height falls away from the centreline at 2%: off ' + off + ' dh/doff ' + dh);
+  }
+  const q = Road.at(path, 20, Road.LANE);
+  const sim = Phys.createSim({vehicle:VEH.small, vehicleKey:'small', grip, params:P, env, tire:'allseason', T:-5, esc:false, x:q.x, z:q.z, psi:q.psi, u:100/3.6});
+  for (let i = 0; i < 3000; i++) sim.step({steer:0, throttle:.15, brake:0});
+  const off = Road.locate(path, sim.st.x, sim.st.z, 0).off;
+  console.log('crown drift: 3 s at 100 km/h on black ice, no steering: ' + (off - Road.LANE).toFixed(3) + ' m toward the right edge');
+  assert.ok(off > Road.LANE + .01, 'drifted toward the low (right) edge: off ' + off.toFixed(3));
+});
