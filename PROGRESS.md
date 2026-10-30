@@ -14,6 +14,10 @@ Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a sess
 6. Priority: playable realism first: finish Phase 2 (fair hazards, camera, Teaching mode), then the overpass-spin scenario
    and the same-steering comparison. X-ray replay, tilt/controllers and the other 3 scenarios after that.
 7. Usage: run until 98% weekly (replaces the brief's 90/95% wind-down). Both terminals keep running freely.
+8. (2026-10-30) Usage limit now 99%. Rough draft scope: working tested demo first, then ROUGH same-steering comparison and
+   X-ray replay; tilt/controllers, the other 3 scenarios and the video wait for the reset. Sonnet writes, Opus checks key lines.
+   Testing for the demo: npm test + one headless desktop browser pass per scenario (full e2e matrix after the reset).
+   Rough draft stays on physics-v2 (no merge, no preview link).
 
 ## RESUME HERE (written 2026-10-30, before the weekly usage limit)
 Goal of the 2026-10-30 push: a WORKING DEMO on physics-v2 (Phase 2 closed + overpass-spin playable). Then the rest of the brief.
