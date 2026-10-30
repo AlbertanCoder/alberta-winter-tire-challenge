@@ -51,6 +51,12 @@ Kinan session (a hidden background Claude Code session on this laptop; it also r
       ice that cost 2.65 m. Holding the trigger speed instead stops 2.53 m short (rule 2.5 m). Fix: at the trigger the
       cruise set point becomes the current speed; the hazard trigger and the scripted brake are now checked every 1 ms.
       henday passes in the browser. (A 4 s 'settle' run-up in the reference driver was tried and reverted: not the cause.)
+  (0) 2026-10-30 13:47Z: FULL hazard table built (fingerprint 85b38ad3a3235af3; 2 m/s grid + bend refinement BEND .15/CHECK .25;
+      rows finished earlier with the stricter .05/.1 settings were kept). npm test: 21/22 pass. FAILS: test/fair.test.js
+      sample gravel|hd|fwd at 150 km/h: table 268.34 vs sim 267.76 (0.58 m > 0.5). Not a drive-type issue: same 4x4 drive
+      also differs 0.83 m, and at 41.66 m/s on gravel D varies ~1.6 m across drive types and small speed changes. Root
+      cause = uneven ABS cycling on loose surfaces (Phase 1 note item 1). Fix there (smoother ABS on rising force curves),
+      then rebuild the table. Do NOT loosen the test.
   (2) frzrain: the spinning lead car still slides on the v1 1-D decel (hazards(), H.type 'spin'); move it to the full sim
       or a sim-derived stop so it lands where winter tires can stop.
 - Laptop rule slip (2026-10-30 ~11:35Z): one ~1 min browser run started without the lock (a retry loop fell through).
