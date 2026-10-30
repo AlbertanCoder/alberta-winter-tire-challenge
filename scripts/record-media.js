@@ -46,15 +46,32 @@ const TIRES = process.env.MEDIA_ESC_OFF === '0' ? TIRES_ALL.slice(0, 2) : TIRES_
   }
   await browser.close();
   console.log(JSON.stringify(results));
-  // Encode: each clip gets its tire label, both get the comparison caption; then join and compress
+  // Encode. Labels sit at the top centre (the game's own panels are top-left and top-right); text comes from files, so
+  // no quoting trouble; Arial Bold from Windows. MEDIA_CARDS=1 adds an opening and a closing card (6 s each).
+  const FONT = 'C\\:/Windows/Fonts/arialbd.ttf';
+  const tfile = (name, text) => { const f = path.join(TMP, SCEN_ID + '-' + name + '.txt'); fs.writeFileSync(f, text); return f.replace(/\\/g, '/').replace(/^([A-Za-z]):/, '$1\\:'); };
+  const dt = (file, y, size, color) => "drawtext=fontfile='" + FONT + "':textfile='" + file + "':x=(w-text_w)/2:y=" + y + ":fontsize=" + size +
+    ":fontcolor=" + (color || 'white') + ":line_spacing=12:box=1:boxcolor=black@0.6:boxborderw=14";
+  const ENC = ['-r', '30', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '30', '-pix_fmt', 'yuv420p', '-an'];
   const parts = clips.map(([f, label], i) => {
     const o = path.join(TMP, SCEN_ID + '-part' + i + '.mp4');
-    const txt = (t, y, size) => "drawtext=text='" + t + "':x=(w-text_w)/2:y=" + y + ":fontsize=" + size + ":fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=12";
     execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-threads', '2', '-i', f, '-vf',
-      [txt(label, 'h-150', 44), txt('Same steering, same pedals, only the tires changed.', 'h-80', 28)].join(','),
-      '-r', '30', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '30', '-pix_fmt', 'yuv420p', '-an', o]);
+      [dt(tfile('label' + i, label), 18, 40), dt(tfile('cap', 'Same steering, same pedals, only the tires changed.'), 84, 20)].join(','), ...ENC, o]);
     return o;
   });
+  const card = (name, title, body) => {
+    const o = path.join(TMP, SCEN_ID + '-' + name + '.mp4');
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-threads', '2', '-f', 'lavfi', '-i', 'color=c=0x14202b:s=1280x720:d=6:r=30', '-vf',
+      [dt(tfile(name + '-t', title), 150, 46, '0xFFBF47'), dt(tfile(name + '-b', body), 270, 30)].join(','), ...ENC, o]);
+    return o;
+  };
+  if (process.env.MEDIA_CARDS === '1'){
+    const out = Object.fromEntries(results.filter(r => r.esc).map(r => [r.tire, r.outcome]));
+    parts.unshift(card('intro', 'Alberta Winter Tire Challenge: physics update',
+      'It looks the same. Underneath, it is a new game.\nBefore: the car drove on rails and stopped in a straight line.\nNow: every tire grips, slides and locks on its own,\n1,000 times a second, with grip from published tire tests.\nSame car, same speed, same braking moment. Only the tires change.'));
+    parts.push(card('outro', 'Same driver. Only the tires changed.',
+      'Winter tires: ' + out.winter + '\nAll-season tires: ' + out.allseason + '\n\nWinter tires, or all-weathers at minimum.\nSafety over cost.\n\nalbertancoder.github.io/alberta-winter-tire-challenge'));
+  }
   const list = path.join(TMP, 'list.txt'); fs.writeFileSync(list, parts.map(p => "file '" + p.replace(/\\/g, '/') + "'").join('\n'));
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-threads', '2', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', path.join(OUT, OUT_FILE)]);
   console.log('wrote media/' + OUT_FILE, fs.statSync(path.join(OUT, OUT_FILE)).size, 'bytes');
