@@ -178,6 +178,7 @@ select{font:700 .95rem var(--font-display);padding:9px 10px;border-radius:10px;b
 .scen.first::before{content:"Start here";font:800 .7rem var(--font-display);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
 
 /* Learn drawer */
+.overlay.xr{z-index:25}   /* the X-ray replay opens over the results screen */
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);z-index:30;background:var(--bg);color:var(--ink);overflow-y:auto;overscroll-behavior:contain;transform:translateX(105%);transition:transform .3s ease;box-shadow:-10px 0 40px rgba(0,0,0,.25);
   padding-top:0;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 30px);
   padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
@@ -1883,13 +1884,15 @@ function step(dt){
     // v1's steering cap (about 0.45 g at speed), as a road-wheel angle, then through the steering ratio (positive = left)
     const sp = Math.max(1, Math.abs(st.u)), dMax = Math.min(V.maxWheelDeg*Math.PI/180, Math.atan(V.L*4.5/(sp*sp)));
     inp.steer = -r.steer*dMax*180/Math.PI*V.steerRatio;
-    if (WTT && WTT.kind === 'test') inp.steer = WTT.wheel(r, st, V);   // test hook: the fairness reference driver's steering
+    if (WTT && WTT.kind === 'test'){ const gl = r.glanceT != null && r.t - r.glanceT < sc.glance.dur; inp.steer = gl ? WTT.lastWheel : (WTT.lastWheel = WTT.wheel(r, st, V)); }   // test hook: the fairness reference driver's steering
     inp.brake = input.brake || hold ? 1 : 0;
     if (input.gas && !hold){ inp.throttle = GAS_INTERIM; r.cruiseV = null; }
     else if (!sc.noCruise && !input.brake && st.u > .5){ if (r.cruiseV == null) r.cruiseV = st.u; inp.throttle = clamp((r.cruiseV - st.u)*1.5, 0, 1); }
     else { inp.throttle = 0; r.cruiseV = null; }
     // test hook: the scripted driver brakes 1.0 s of simulation time after the 1 ms trigger point
     if (WTT && WTT.kind === 'test' && r.trigNow && st.t - r.trigNow.simT >= 1.0){ inp.brake = 1; inp.throttle = 0; r.cruiseV = null; }
+    if (WTT && WTT.play){ const q = WTT.play; while (q.i < q.list.length && q.n >= q.list[q.i][0]){ q.n -= q.list[q.i][0]; q.i++; }
+      const e = q.list[Math.min(q.i, q.list.length - 1)]; inp.steer = e[1]; inp.throttle = e[2]; inp.brake = e[3]; q.n++; }
     r.irec.push(inp);
     sim.step(inp);
     // Hazard trigger checked every 1 ms (a frame is 17 ms, about 0.5 m at 100 km/h); hazards() acts on it next frame
@@ -2254,7 +2257,7 @@ function physCheck(){
     title = 'Time to climb this hill with ' + DRIVE[S.runDrive] + ' (smooth throttle)';
     const awd = TIRE_KEYS.map(k => { const m = grip(k, hc), a = G*(m*Math.cos(th) - Math.sin(th)); return TIRE[k].name + ' ' + (a > .02 ? Math.round(Math.sqrt(2*dist/Math.min(2.2, a))) + ' s' : '–'); }).join(', ');
     note = 'Pulling power is limited to grip × the weight on the driven wheels. With AWD or 4x4: ' + awd + '. Braking and cornering are the same for every drive type.';
-  } else {
+  } else if (H){
     const v = res.vTrig != null ? res.vTrig : sc.limit/3.6, D = res.D != null ? res.D : 60, s0 = H.s - D;
     const rt = res.rt != null ? Math.max(.3, res.rt) : 1.0, opt = {weather:wx, vehicle:S.vehicle, tread:S.runTread, abs:S.runAbs, rt};
     rows.forEach(r => { r.val = stopRun(r.k, sc, s0, v, opt).dist; });
@@ -2316,7 +2319,7 @@ function xrDraw(cv, T, d, i){
   // car outline (centred on the centre of gravity, rough); body forward = (-sin psi, -cos psi), left = (-cos psi, sin psi)
   const cf = [-Math.sin(e.psi), -Math.cos(e.psi)], cl = [-Math.cos(e.psi), Math.sin(e.psi)], hl = d.prof.L/2, hw = d.prof.w/2;
   g.beginPath(); g.strokeStyle = '#e6edf3'; [[1,1],[1,-1],[-1,-1],[-1,1]].forEach((c, n) => { const x = e.x + cf[0]*hl*c[0] + cl[0]*hw*c[1], z = e.z + cf[1]*hl*c[0] + cl[1]*hw*c[1]; n ? g.lineTo(X(x, z), Y(x, z)) : g.moveTo(X(x, z), Y(x, z)); }); g.closePath(); g.stroke();
-  const kf = k*.004;   // pixels per newton, for circles and arrows
+  const kf = k*.00015;   // pixels per newton: a typical tire (about 5 kN of grip) draws a circle about 0.75 m across
   e.w.forEach((w, n) => {
     const x = X(w[0], w[1]), y = Y(w[0], w[1]), pc = w[4] > 0 ? Math.hypot(w[2], w[3])/w[4] : 0, col = pc < .7 ? '#3fb950' : pc <= .97 ? '#d29922' : '#f85149';
     const di = n < 2 ? e.delta : 0, bx = w[2]*Math.cos(di) - w[3]*Math.sin(di), by = w[2]*Math.sin(di) + w[3]*Math.cos(di);   // wheel frame to body frame (x forward, y left)
@@ -2701,10 +2704,13 @@ if (/[?&]test=1(&|$)/.test(location.search)){
       if (o.weather) S.runWeather = o.weather;
       if (o.tod) S.runTod = o.tod;
       prepRun(); applyNight(); syncRun();
-      WTT.kind = null; WTT.tl = null; WTT.steer = null; WTT.hint = 0; Object.keys(input).forEach(k => input[k] = false);
+      WTT.kind = null; WTT.tl = null; WTT.steer = null; WTT.hint = 0; WTT.play = null; WTT.lastWheel = 0; Object.keys(input).forEach(k => input[k] = false);
       $('goBtn').click();   // same as the Start button on the intro card
     },
     driver(kind, tl){ WTT.kind = kind; WTT.tl = tl || null; },
+    // Replay a run's recorded physics inputs (inputs() of an earlier run) step for step
+    playInputs(list){ WTT.kind = null; WTT.play = {list, i:0, n:0}; },
+    inputs(){ return run && run.irec ? run.irec.list : null; },
     timeline(tl){ WTT.kind = 'timeline'; WTT.tl = tl.slice().sort((a, b) => a[0] - b[0]); },
     fast(k){ WTT.k = Math.max(1, k|0); },
     state(){
