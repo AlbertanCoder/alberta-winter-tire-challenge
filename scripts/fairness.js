@@ -1,11 +1,11 @@
 // Builds js/hazard-table.js: the fairness-rule warning distance for every stopping scenario x vehicle x weather, at
-// every 1 m/s from 0 to 50 m/s (180 km/h) plus extra speeds at bends, from the full simulation (js/fair.js). HEAVY JOB (about 30-60 minutes, one CPU core): take the
+// every 2 m/s from 0 to 50 m/s (180 km/h) plus extra speeds at bends, from the full simulation (js/fair.js). HEAVY JOB (about 30-60 minutes, one CPU core): take the
 // ~/claude-coord lock first. Deterministic: the same sources give a byte-identical file.
 // The table uses each vehicle's own drive type; test/fair.test.js checks all four drive types against it.
 'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const F = require('./fairlib.js');
-const DV = 1, VMAX = 50;
+const DV = 2, VMAX = 50;   // base grid every 2 m/s; bends add real midpoints (below)
 const SRC = ['js/physics.js', 'js/tire-params.js', 'js/vehicles.js', 'js/road.js', 'js/grip.js', 'js/fair.js'];
 // Everything the table depends on: the physics sources, the stopping scenarios and the car lengths
 function fingerprint(){
@@ -37,10 +37,10 @@ function build(shard){
     const c = F.ctx(sc, veh, D.vehicles[veh].drive, w, D);
     // Each solved speed is saved too, so a heat stop in the middle of a long row loses nothing
     const pf = cf && cf + '.part', part = pf && fs.existsSync(pf) ? JSON.parse(fs.readFileSync(pf, 'utf8')) : {};
-    const solve = v => {
+    const solve = (v, guess) => {
       if (part[v] != null) return part[v];
       const ts = Date.now();
-      const r = F.Fair.solveWarn(D, sc, c.P, Object.assign({}, c.o, {v}), c.Hs, F.legacyWarn(c, v));
+      const r = F.Fair.solveWarn(D, sc, c.P, Object.assign({}, c.o, {v}), c.Hs, guess != null ? guess : F.legacyWarn(c, v));
       if (Math.abs(r.err) > .05 && !(r.width < .02)) throw new Error('no converged warning distance: ' + JSON.stringify({id:sc.id, veh, w, v, r}));
       worst = Math.max(worst, Math.min(Math.abs(r.err), r.width)); n++;
       part[v] = Math.round(r.D*100)/100;
@@ -49,11 +49,12 @@ function build(shard){
       return part[v];
     };
     const pts = [[0, F.Fair.MARGIN]];
-    for (let i = 1; i*DV <= VMAX + 1e-9; i++) pts.push([i*DV, solve(i*DV)]);
+    // First guess: extrapolated from the two speeds below (linear in v²), else the legacy 1-D model
+    for (let i = 1; i*DV <= VMAX + 1e-9; i++){ const v = i*DV, n = pts.length; pts.push([v, solve(v, n >= 2 ? F.Fair.interp(pts[n-2][0], pts[n-2][1], pts[n-1][0], pts[n-1][1], v) : null)]); }
     const brk = p => p[1] - F.Fair.MARGIN - p[0]*F.Fair.RT;
     const slope = i => (brk(pts[i+1]) - brk(pts[i]))/(pts[i+1][0]**2 - pts[i][0]**2);
     const refine = (p0, p1, depth) => {
-      const vm = (p0[0] + p1[0])/2, pm = [vm, solve(vm)]; extra++;
+      const vm = (p0[0] + p1[0])/2, pm = [vm, solve(vm, F.Fair.interp(p0[0], p0[1], p1[0], p1[1], vm))]; extra++;
       const e = Math.abs(F.Fair.interp(p0[0], p0[1], p1[0], p1[1], vm) - pm[1]);
       if (e <= CHECK || depth >= DEPTH) return [pm];
       return refine(p0, pm, depth + 1).concat([pm], refine(pm, p1, depth + 1));
