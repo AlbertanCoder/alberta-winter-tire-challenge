@@ -1888,8 +1888,17 @@ function step(dt){
     if (input.gas && !hold){ inp.throttle = GAS_INTERIM; r.cruiseV = null; }
     else if (!sc.noCruise && !input.brake && st.u > .5){ if (r.cruiseV == null) r.cruiseV = st.u; inp.throttle = clamp((r.cruiseV - st.u)*1.5, 0, 1); }
     else { inp.throttle = 0; r.cruiseV = null; }
+    // test hook: the scripted driver brakes 1.0 s of simulation time after the 1 ms trigger point
+    if (WTT && WTT.kind === 'test' && r.trigNow && st.t - r.trigNow.simT >= 1.0){ inp.brake = 1; inp.throttle = 0; r.cruiseV = null; }
     r.irec.push(inp);
     sim.step(inp);
+    // Hazard trigger checked every 1 ms (a frame is 17 ms, about 0.5 m at 100 km/h); hazards() acts on it next frame
+    if (sc.kind === 'stop' && sc.hazard && !r.trig && !r.trigNow){
+      const L = locate(r.P, st.x, st.z, r.hint), fr = L.s + PROF[VEH[S.vehicle].type].L/2;
+      // the hazard appears: the hold-speed cruise now holds this speed (a driver who sees it doesn't speed up; the
+      // fairness reference driver holds its speed through the 1.0 s reaction too)
+      if (fr >= sc.hazard.s - warnDist(st.u)){ r.trigNow = {s:fr, simT:st.t, v:st.u}; if (r.cruiseV != null) r.cruiseV = st.u; }
+    }
   }
   r.x = st.x; r.z = st.z; r.psi = st.psi; r.v = st.u; r.vis = 0;
   // Grip meter and tags from the four wheels
@@ -1979,8 +1988,9 @@ function hazards(dt){
   }
   if (!H) return;
   if (!r.trig) r.wd = warnDist(r.v);   // a table lookup, so every frame
-  if (!r.trig && front >= H.s - r.wd){
-    r.trig = true; r.trigS = front; r.trigT = r.t; r.vTrig = Math.max(0, r.v); r.D = Math.max(0, H.s - front); if (input.brake) r.rt = 0;
+  if (!r.trig && (r.trigNow || front >= H.s - r.wd)){
+    const tn = r.trigNow, fs = tn ? tn.s : front;   // the exact 1 ms trigger point when step() found it
+    r.trig = true; r.trigS = fs; r.trigT = tn ? r.t - (r.sim.st.t - tn.simT) : r.t; r.vTrig = Math.max(0, tn ? tn.v : r.v); r.D = Math.max(0, H.s - fs); if (input.brake) r.rt = 0;
     if (H.type === 'light'){ r.light = 'y'; r.lightT = r.t; setSignal('y'); }
     if (H.type === 'car' || H.type === 'car2'){ level.stopped.forEach(c => c.obj.visible = true); banner('Traffic stopped ahead!', true); setTimeout(() => { if (run && run.phase === 'drive') banner(''); }, 1600); }
     if (H.type === 'spin' && level.lead){

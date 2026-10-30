@@ -46,10 +46,11 @@ Kinan session (a hidden background Claude Code session on this laptop; it also r
   "wrote js/hazard-table.js" (non-partial), commit it.
 - Browser pass (desktop, winter, ESC on), 15 scenarios: all load with NO console errors and reach a result. After giving the
   e2e test driver the fairness reference driver's steering (WTT.wheel = js/fair.js KEEP rule), 13 of 15 safe. Open:
-  (1) henday: scripted driver hits the stopped cars at 5 km/h although the table equals the full sim within 0.01 m at
-      100 km/h. Suspects: hazard trigger and the test driver's brake are evaluated once per 1/60 s frame (up to ~0.5 m each
-      late at 100 km/h); the car's sideslip/yaw state after 25 s of lane keeping on black ice vs the reference's clean start.
-      Fix idea: evaluate the trigger and the scripted brake inside the 1 ms physics loop.
+  (1) FIXED (henday): cause found with a full-run Node sim (start to stop, no browser): the game's interim hold-speed cruise
+      (P-only) sags ~0.2 m/s below its set point, so during the reaction second it kept pushing back toward 100 km/h; on
+      ice that cost 2.65 m. Holding the trigger speed instead stops 2.53 m short (rule 2.5 m). Fix: at the trigger the
+      cruise set point becomes the current speed; the hazard trigger and the scripted brake are now checked every 1 ms.
+      henday passes in the browser. (A 4 s 'settle' run-up in the reference driver was tried and reverted: not the cause.)
   (2) frzrain: the spinning lead car still slides on the v1 1-D decel (hazards(), H.type 'spin'); move it to the full sim
       or a sim-derived stop so it lands where winter tires can stop.
 - Laptop rule slip (2026-10-30 ~11:35Z): one ~1 min browser run started without the lock (a retry loop fell through).
