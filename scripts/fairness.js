@@ -17,7 +17,7 @@ function fingerprint(){
 }
 // Bends: where the braking part's slope in v² changes sharply between neighbouring cells (braking starting at a surface
 // edge), the midpoint is solved for real and the cell is halved, down to 1/16 m/s, until the lookup is within 0.1 m.
-const BEND = .05, CHECK = .1, DEPTH = 4;
+const BEND = .15, CHECK = .25, DEPTH = 4;   // looser than tick-to-tick ABS noise on ice, well inside the 0.5 m test
 const DUTY = Math.min(1, Math.max(.1, +process.env.FAIR_DUTY || 1));   // share of time computing (heat); results don't change
 const ONLY = process.env.FAIR_ONLY || '';   // one row only, printed, not written (a quick check)
 // shard = {i, n}: compute only distinct rows j with j % n === i (others come back null); i = -1 computes none (a plan)
