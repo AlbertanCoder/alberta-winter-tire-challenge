@@ -1836,7 +1836,8 @@ function poseCar(){
 const GAS_INTERIM = .4;   // throttle while GAS is held (interim; Phase 3 ramps it)
 function step(dt){
   const r = run, sc = r.sc, sim = r.sim, st = sim.st, V = sim.vehicle;
-  const target = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  if (WTT) WTT.drive(r);   // test hook (?test=1 only): scripted inputs
+  const target = WTT && WTT.steer != null ? WTT.steer : (input.right ? 1 : 0) - (input.left ? 1 : 0);
   r.steer += clamp(target - r.steer, -dt*2.2, dt*2.2);
   if (r.offroad){
     r.v = Math.sign(r.v)*Math.max(0, Math.abs(r.v) - 9*dt);
@@ -2421,10 +2422,11 @@ if (window.visualViewport) window.visualViewport.addEventListener('resize', resi
 let last = performance.now(), perfT = 0, perfN = 0, perfDone = false;
 function frame(now){
   requestAnimationFrame(frame);
-  const dt = Math.min(.05, (now - last)/1000); last = now;
+  const dt = WTT && WTT.k > 1 ? 1/60 : Math.min(.05, (now - last)/1000); last = now;
   if (replay) updateReplay(dt);
   else if (run){
     if (run.phase === 'drive' && !paused()){
+      if (WTT) for (let q = 1; q < WTT.k && run.phase === 'drive'; q++) WTT.frame();
       let acc = dt;
       while (acc > 1e-6 && run.phase === 'drive'){ const h = Math.min(1/120, acc); step(h); run.t += h; hazards(h); acc -= h; }
       if (run.phase === 'drive') checkEnd(dt);
@@ -2488,6 +2490,62 @@ function frame(now){
   if (mtnOn) mtns.position.set(camera.position.x*.3, camera.position.y - 95, camera.position.z - 950);
   updateSound();
   renderer.render(scene, camera);
+}
+
+/* ===== Test hooks: active ONLY with ?test=1 (window.WTTest). Used by test/e2e. ===== */
+let WTT = null;
+if (/[?&]test=1(&|$)/.test(location.search)){
+  WTT = {k:1, kind:null, tl:null, steer:null,
+    // Called at the start of step(): writes the scripted pedals into `input`, sets WTT.steer (-1..1, +1 = right)
+    drive(r){
+      if (!this.kind){ this.steer = null; return; }
+      if (this.kind === 'timeline'){
+        let cur = {}; for (const [t, v] of this.tl) if (r.t >= t) cur = v;
+        input.left = !!cur.left; input.right = !!cur.right; input.gas = !!cur.gas; input.brake = !!cur.brake;
+        this.steer = null; return;
+      }
+      // 'test': no pedals (the game holds speed), proportional lane keeping, full brake 1.0 s after the hazard trigger
+      this.steer = clamp(-0.25*(r.off - LANE) + 1.5*roadYaw(r), -1, 1);
+      input.left = input.right = input.gas = false;
+      input.brake = r.trig && r.t - r.trigT >= 1.0;
+    },
+    // One extra fixed 1/60 s frame of the same loop as frame()
+    frame(){
+      if (!run || run.phase !== 'drive' || paused()) return;
+      let acc = 1/60;
+      while (acc > 1e-6 && run.phase === 'drive'){ const h = Math.min(1/120, acc); step(h); run.t += h; hazards(h); acc -= h; }
+      if (run.phase === 'drive') checkEnd(1/60);
+      run.rec.push([run.t, run.x, run.z, run.psi - run.vis]);
+    }};
+  window.SCEN = SCEN;
+  window.WTTest = {
+    load(id, o){
+      o = o || {};
+      const i = SCEN.findIndex(s => s.id === id); if (i < 0) throw new Error('no scenario ' + id);
+      if (o.vehicle){ S.vehicle = o.vehicle; S.drive = VEH[o.vehicle].drive; }
+      if (o.tire) S.tire = o.tire;
+      if (o.drive) S.drive = o.drive;
+      enterScen(i);
+      if (o.tire) S.runTire = o.tire;
+      if (o.drive) S.runDrive = o.drive;
+      if (o.abs != null) S.runAbs = !!o.abs;
+      if (o.esc != null) S.runEsc = !!o.esc;
+      if (o.tcs != null) S.runTcs = !!o.tcs;
+      if (o.tread) S.runTread = o.tread;
+      if (o.weather) S.runWeather = o.weather;
+      if (o.tod) S.runTod = o.tod;
+      prepRun(); applyNight(); syncRun();
+      WTT.kind = null; WTT.tl = null; WTT.steer = null; Object.keys(input).forEach(k => input[k] = false);
+      $('goBtn').click();   // same as the Start button on the intro card
+    },
+    driver(kind, tl){ WTT.kind = kind; WTT.tl = tl || null; },
+    timeline(tl){ WTT.kind = 'timeline'; WTT.tl = tl.slice().sort((a, b) => a[0] - b[0]); },
+    fast(k){ WTT.k = Math.max(1, k|0); },
+    state(){
+      const r = run; if (!r) return null; const st = r.sim && r.sim.st;
+      return {phase:r.phase, outcome:r.outcome, t:r.t, v:r.v, s:r.s, off:r.off, psi:r.psi, trig:r.trig, tag:r.tag, esc:st && st.esc, tcs:st && st.tcs};
+    }
+  };
 }
 
 /* Boot: title over a live scene */
