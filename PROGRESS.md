@@ -123,7 +123,13 @@ Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true 
   smoothed travel direction (camPsi, 0.35 s filter), wheels steer by st.delta and spin by w.om, per-wheel skid marks,
   2-degree body roll/pitch (bodyG). CHECK IN BROWSER: front-wheel steer direction (old code may have been backwards) and
   roll/pitch signs.
-  NEXT (fresh session): npm run fairness under the lock (needs memory above the floor), npm test, then
+- 2026-10-30 overnight: the table build runs DETACHED (Claude Code's low-memory reaper killed it twice as a background
+  task): ~/claude-coord/run-fairness-physics-v2.sh, log ~/claude-coord/fairness-physics-v2.log. It waits for 2 readings
+  under 80 C + the free lock, runs 1 process at half duty (FAIR_DUTY=.5: no heat stop in 10 min at ~80 C, vs a stop every
+  1-2 min at full duty), saves every solved speed in %TEMP%/wt-fair-<fingerprint>/, and writes js/hazard-table.js at the end
+  ("runner done" in the log). 92 of ~175 distinct rows done at 04:59Z; ~3-4 h to go.
+  NEXT (fresh session): check the log for "runner done" and "wrote js/hazard-table.js" (if the runner died, restart it with
+  the same script; finished speeds are kept), then npm test (incl. test/fair.test.js), then
   run scripts/smoke-browser.js under the lock; then step 6 hazard fairness (Opus), step 4 camera +
   visuals + sound and step 5 Teaching mode + ESC light (Sonnet), step 7 ?test=1 hooks + e2e (Sonnet), then Phase 2 DONE.
 
