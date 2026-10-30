@@ -433,6 +433,7 @@ ol.refs li{overflow-wrap:anywhere}
 <script src="js/tire-params.js"></script>
 <script src="js/physics.js"></script>
 <script src="js/road.js"></script>
+<script src="js/wind.js"></script>
 <script src="js/fair.js"></script>
 <script src="js/hazard-table.js"></script>
 <script>
@@ -580,6 +581,13 @@ const SCEN = [
    signs:[['max',80],['guide',150,'Anthony Henday Dr','WEST']],
    note:'Transport Canada: bridges and overpasses freeze quickly and stay frozen longer, and black ice is more common in shade. Slow down before you reach them. With ABS, press the brake firmly, hold it and steer (AMA). Without ABS, brake to just before the wheels lock, ease off and reapply.',
    goal:'The freeway is dry, but the road under the overpass is shaded. Traffic stops just past it. Stop in time. Try ABS off, too.'},
+  {id:'overspin', group:'yeg', title:'Spin under the overpass', place:'Edmonton freeway', cond:'dry', T:-5, grade:0, limit:100, startV:100, startS:30,
+   zones:[[300,360,'black']], path:[['s',560]], scenery:'overpass', overpass:330, kind:'recover', oneway:true, finishS:450,
+   wind:'light', glance:{s:250, dur:1.1}, passer:{back:67, kmh:120},
+   signs:[['max',100]],
+   note:'Based on a real spin under an Edmonton freeway overpass. Nobody was hurt. The road is dry, about -5 °C, with black ice in the shade under the overpass. Light crosswind; the road is crowned, so a car left alone drifts toward the shoulder.',
+   goal:'You glance at your passenger for a second before the overpass. A car is coming up in the left lane. Get back to your lane and through the shade without spinning or hitting anything.',
+   advice:'Recovering from a skid (CAA): look where you want to go, since you tend to steer where you look. Make small, controlled steering adjustments, or you risk over-correcting. If you accelerated too quickly, ease off the gas, but do not brake; if you braked too hard, take your foot off the brake.'},
   {id:'moose', group:'hwy', title:'Moose at night', place:'Foothills highway', inspired:'Inspired by two-lane highways west of Edmonton', cond:'packed', T:-18, grade:0, limit:100, startV:100, startS:30, tod:'night',
    path:[['s',300],['a',600,15,'R'],['s',500]], scenery:'foothills', kind:'stop', hazard:{type:'moose', s:640}, oncoming:1,
    signs:[['max',80],['moose',420]],
@@ -689,6 +697,7 @@ $('calcForm').addEventListener('submit', e => e.preventDefault());
   $('muTable').innerHTML = h + '</tbody></table><p class="hint">* Estimate. Packed snow comes straight from measured stops. The ice rows keep the measured ratio between tires (all-weather ≈ 77% of winter), but their exact levels are estimates.</p>';
 })();
 const REFS = [
+  ['CAA (Jan 7, 2021). What to Do if Your Car Skids.', 'https://www.caamagazine.com/on/safety/how-to-safely-steer-out-of-a-skid'],
   ['Edmonton Journal (May 19, 2018). Report has good, bad news for motorists (City of Edmonton 2017 collision report).', 'https://www.pressreader.com/canada/edmonton-journal/20180519/281608126089934'],
   ['Global News. Edmonton collisions and winter driving (first snowfall, 2017).', 'https://globalnews.ca/news/3962280/collisions-edmonton-traffic-police-winter-driving/'],
   ['Tire Rack (2026). All-Weather vs. Winter Tires: The Definitive Test.', 'https://www.tirerack.com/tires/tests/testDisplay.jsp?ttid=353'],
@@ -1696,6 +1705,10 @@ function buildHazards(sc, P){
     place(sig, P, sc.startS + 16, HW + 1.2); levelGroup.add(sig); level.lights = [lamps];
     return;
   }
+  if (sc.passer){   // a car coming up in the left lane at a steady speed (it doesn't react: a simplification)
+    const c = buildVehicle('suv', new THREE.Color(0x3d4a5c), false), s0 = sc.startS - sc.passer.back;
+    levelGroup.add(c); place(c, P, s0, -LANE); level.passer = {obj:c, s0, s:s0, v:sc.passer.kmh/3.6, len:c.userData.len, w:c.userData.w};
+  }
   if (!H) return;
   if (H.type === 'ped'){
     const zs = []; for (let o = -HW + .45; o <= HW - .4; o += 1) boxAt(zs, P, H.s, o, .015, .5, .02, 3);
@@ -1751,7 +1764,7 @@ function buildTraffic(sc, P){
   }
   resetTraffic();
 }
-function resetTraffic(){ if (!level) return; level.traffic.forEach(t => { t.s = t.s0; t.obj.visible = t.s < level.L - 4; if (t.obj.visible) place(t.obj, level.P, t.s, t.off, Math.PI); }); }
+function resetTraffic(){ if (!level) return; if (level.passer){ level.passer.s = level.passer.s0; place(level.passer.obj, level.P, level.passer.s0, -LANE); } level.traffic.forEach(t => { t.s = t.s0; t.obj.visible = t.s < level.L - 4; if (t.obj.visible) place(t.obj, level.P, t.s, t.off, Math.PI); }); }
 
 /* ================= Player car ================= */
 let car = null, ghost = null, carKey = '';
@@ -1797,7 +1810,7 @@ function prepRun(){
     weather:S.runWeather || 'clear', T:runTemp(sc, S.runWeather), arcs:arcsOf(sc.path), stopT:0, elkGap:0, elkSt:null, elkGo:null, spinT:-1, wd:0, trigS:null,
     finishS: sc.finishS || (sc.kind === 'curve' ? arcsOf(sc.path).slice(-1)[0].s1 + 40 : level.L - 25)};
   { const grip = WTGrip.make(WTTireParams.fixes);
-    run.sim = WTPhys.createSim({vehicle:WTVehicles[S.vehicle], vehicleKey:S.vehicle, grip, params:WTTireParams, env:WTRoad.roadEnv(sc, P, grip, run.weather, sc.startS),
+    run.sim = WTPhys.createSim({vehicle:WTVehicles[S.vehicle], vehicleKey:S.vehicle, grip, params:WTTireParams, env:WTRoad.roadEnv(sc, P, grip, run.weather, sc.startS, sc.wind ? WTWind.gust({kind:sc.wind, seed:1000 + S.idx, dir:[Math.cos(p.psi), -Math.sin(p.psi)]}) : null),
       tire:S.runTire, tread:S.runTread, T:run.T, abs:S.runAbs, esc:S.runEsc, tcs:S.runTcs, drive:S.runDrive, x:p.x, z:p.z, psi:p.psi, u:sc.startV/3.6});
     run.acc = 0; run.inp = {steer:0, throttle:0, brake:0, gear:'D'}; run.cruiseV = null; run.rng = WTPhys.rng(1000 + S.idx); }
   resetTraffic();
@@ -1917,6 +1930,13 @@ function hazards(dt){
   }
   if (r.phase !== 'drive') return;
   if (r.off < -.2 && !r.wasLeft && !sc.oneway){ r.crossings++; } r.wasLeft = r.off < -.2;
+  if (level.passer){
+    const Q = level.passer; Q.s += Q.v*dt; place(Q.obj, r.P, Q.s, -LANE);
+    if (rectsHit(r.cb, rect(Q.s, -LANE, Q.len/2, Q.w/2, 0))) return crash('Hit the car passing in the left lane', 'Hit the passing car');
+  }
+  if (sc.glance && r.glanceT == null && r.s >= sc.glance.s){
+    r.glanceT = r.t; banner('You glance at your passenger…'); setTimeout(() => { if (run && run.phase === 'drive') banner(''); }, sc.glance.dur*1000);
+  }
   if (sc.kind === 'curve' || sc.kind === 'wind'){
     const arcs = r.arcs;
     if (r.entryV == null && arcs.length && front >= arcs[0].s0) r.entryV = Math.abs(r.v);
@@ -2024,6 +2044,10 @@ function checkEnd(dt){
   }
   if (sc.kind === 'curve' || sc.kind === 'wind'){
     if (r.s >= r.finishS) return end({safe:true, text:sc.kind === 'wind' ? (r.crossings ? 'Made the climb, but drifted over the centre line ' + r.crossings + ' time' + (r.crossings > 1 ? 's' : '') : 'Made the climb and stayed in your lane') : 'Made it through the curve, entering at ' + Math.round((r.entryV || Math.abs(r.v))*3.6) + ' km/h', short:sc.kind === 'wind' && r.crossings ? 'Crossed centre line' : 'Made it'});
+    stillCheck(dt, stopped); return;
+  }
+  if (sc.kind === 'recover'){
+    if (r.s >= r.finishS) return end(r.off > 0 && r.off < HW ? {safe:true, text:'Got back to your lane and through the shade in control', short:'Made it'} : {safe:false, text:'Got through the shade, but out of your lane', short:'Out of your lane'});
     stillCheck(dt, stopped); return;
   }
   if (!r.trig){ stillCheck(dt, stopped); return; }
@@ -2205,6 +2229,7 @@ function physCheck(){
     title = 'Stopping from ' + Math.round(v*3.6) + ' km/h on ' + surf.map(c => COND[c].name.toLowerCase()).join(', then ') + ', with your ' + fmt(rt, 2) + ' s reaction';
     note = 'Dashed line: you had ' + Math.round(mark) + ' m of warning. The hazard appears where a driver on winter tires reacting in 1.0 s can just stop, so the comparison is fair at any speed. Same driver, same reaction; only the tires change.' + (extra15 > 1 ? ' A typical surprise reaction is about 1.5 s (Green 2000), which would add ' + Math.round(extra15) + ' m to every bar.' : '') + (sc.grade < 0 ? ' Downhill, gravity takes some of your braking away.' : '') + (surf.some(c => COND[c].est) ? ' Some surface grip values here are estimates (see How the game works).' : '') + ' Driving slower lowers your impact speed, but the hazard always appears at the edge of what winter tires can handle.' + (typeof fogFar === 'number' && D > fogFar + 5 ? ' You could only see about ' + Math.round(fogFar) + ' m here. No tire stops from this speed in that distance: slow to what you can see.' : '');
   }
+  if (sc.kind === 'recover'){ title = 'What helps in a skid'; note = sc.advice; rows.length = 0; }
   rows.forEach(r => html += '<div class="bar-row"><b>' + TIRE[r.k].name + '</b><div class="track"><i style="--c:var(' + TIRE[r.k].css + ');width:' + (isFinite(r.val) ? Math.min(100, r.val/max*100) : 100) + '%;' + (isFinite(r.val) ? '' : 'opacity:.35') + '"></i>' + (mark ? '<span class="mark" style="left:' + Math.min(100, mark/max*100) + '%"></span>' : '') + '</div><span class="v">' + fmtv(r.val, r) + '</span></div>');
   $('physTitle').textContent = title; $('physBars').innerHTML = html; const extra = [];
   if (!S.runAbs) extra.push('ABS was off. Locked wheels give up grip on pavement and ice, and you can\'t steer while braking.');
@@ -2467,7 +2492,9 @@ function frame(now){
     }
     let dpsi = tPsi - camPsi; dpsi = Math.atan2(Math.sin(dpsi), Math.cos(dpsi));
     camPsi += snapCam ? dpsi : dpsi*(1 - Math.exp(-dt/.35));
-    const fx = -Math.sin(camPsi), fz = -Math.cos(camPsi);
+    let lp = camPsi;   // the glance at the passenger (overpass spin): the view turns right, then back; cosmetic only
+    if (run.glanceT != null){ const g = (run.t - run.glanceT)/run.sc.glance.dur; if (g < 1) lp -= 1.25*(reduceMotion ? 1 : Math.sin(Math.PI*g)); }
+    const fx = -Math.sin(lp), fz = -Math.cos(lp);
     // Portrait screens are narrow, so pull the camera back and up to show more road past the car
     const port = camera.aspect < 1, cb = port ? 11.5 : 8.5;
     tPos.set(run.x - fx*cb, port ? 4.8 : 3.6, run.z - fz*cb); tLook.set(run.x + fx*(port ? 18 : 14), 1.0, run.z + fz*(port ? 18 : 14));
