@@ -104,7 +104,27 @@ Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true 
 - Step 3 written (1d59446), syntax-checked, NOT yet run in a browser: oriented-rectangle collisions (SAT, car footprint at
   real yaw; spinning lead car rotated), "Spun out" (>90 deg), "Slid into the next lane" (centre line crossed while
   sliding; unsafe on two-way roads), off-road when all 4 wheels are past the edge on one side.
-  NEXT (fresh session): run scripts/smoke-browser.js under the lock; then step 6 hazard fairness (Opus), step 4 camera +
+- Step 6 hazard fairness written (2026-10-30): js/fair.js = reference driver on the FULL sim (winter, new tread, ABS+ESC+TCS,
+  player's vehicle, holds speed in the right lane, 1.0 s reaction, full brake, lane-keeping steer); secant solve for the
+  trigger distance that stops it 2.5 m short. scripts/fairness.js (`npm run fairness`, HEAVY ~10 min) -> js/hazard-table.js
+  (scenario|vehicle|weather, 0-50 m/s every 1 m/s, each vehicle's own drive; drive type moves it ~0.02 m). Lookup
+  interpolates the braking part in v². Probe: dv 2 m/s worst midpoint error 0.385 m (frzrain, too thin), dv 3 0.79 m.
+  test/fair.test.js: table fingerprint current + 40 random samples (every scenario x every drive) within 0.5 m.
+  Full sim vs legacy, small SUV clear: henday 100 km/h 255.0 vs 259.9 m; bridge HD 50 km/h 82.1 vs 84.1 m.
+  index.html warnDist now reads the table every frame. Not yet done: Physics check bars still use legacy stopRun
+  (Phase 4 per the brief); the frzrain spinning lead car still slides on the v1 1-D decel (it is the other car, not the player).
+  2026-10-30 01:15 update: solver now brackets (secant + bisection); bridge small car 33 m/s sits on the dry-to-ice edge
+  (D jumps 332.6 -> 349.7 m from 32 to 33 m/s), so rows add real midpoint solves at bends down to 1/16 m/s; identical
+  weather rows are stored as aliases (25 of 30 scenario x weather distinct). One row (bridge|small|clear) = 66 solves, 20 s,
+  so the full build is ~30-60 min of one core. js/hazard-table.js NOT YET BUILT: the game cannot load until it is
+  (WTHazTable undefined). Two build attempts were stopped by Claude Code's low-memory reaper, not by an error.
+- Steps 4-5 written by Sonnet, reviewed, syntax OK, NOT seen in a browser: Teaching mode (S.teach, #runTeachSeg,
+  #pauseTeachSeg; hides #gripBox), ESC light (#escLight: flashes on st.esc/st.tcs, steady "ESC OFF"), camera follows the
+  smoothed travel direction (camPsi, 0.35 s filter), wheels steer by st.delta and spin by w.om, per-wheel skid marks,
+  2-degree body roll/pitch (bodyG). CHECK IN BROWSER: front-wheel steer direction (old code may have been backwards) and
+  roll/pitch signs.
+  NEXT (fresh session): npm run fairness under the lock (needs memory above the floor), npm test, then
+  run scripts/smoke-browser.js under the lock; then step 6 hazard fairness (Opus), step 4 camera +
   visuals + sound and step 5 Teaching mode + ESC light (Sonnet), step 7 ?test=1 hooks + e2e (Sonnet), then Phase 2 DONE.
 
 ## First Fable check (2026-10-29, after Phase 1 build): findings and answers

@@ -75,6 +75,11 @@ button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visi
 .grip{display:flex;flex-direction:column;gap:3px;width:7.5rem}
 .grip .lbl{display:flex;justify-content:space-between;font-size:.7rem;font-weight:800;letter-spacing:.08em;color:var(--muted)}
 .grip .lbl em{font-style:normal;color:var(--danger)}
+.escl{font:800 .7rem var(--font-display);letter-spacing:.08em;padding:2px 6px;border-radius:4px;border:1px solid currentColor;color:var(--muted);opacity:.35;white-space:nowrap}
+.escl.act{color:var(--warn);opacity:1;animation:escf .38s steps(1) infinite}
+.escl.off{color:var(--warn);opacity:1}
+@keyframes escf{50%{opacity:.15}}
+@media (prefers-reduced-motion:reduce){ .escl.act{animation:none} }
 .meter{height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden}
 .meter i{display:block;height:100%;width:0;background:var(--ok);border-radius:5px}
 @media (max-width:560px){ .dash{bottom:calc(env(safe-area-inset-bottom,0px) + 128px)} .grip{width:6rem} }
@@ -225,7 +230,8 @@ ol.refs li{overflow-wrap:anywhere}
   <div class="pnl dash" id="dash">
     <div class="speed" id="speedBox"><b id="spd">0</b><span>KM/H</span></div>
     <div class="limit" id="limitSign">MAXIMUM<b id="limitNum">50</b></div>
-    <div class="grip"><div class="lbl"><span>GRIP USED</span><em id="slipTag"></em></div><div class="meter"><i id="gripBar"></i></div></div>
+    <span class="escl" id="escLight" role="img" aria-label="Stability control active">ESC</span>
+    <div class="grip" id="gripBox" hidden><div class="lbl"><span>GRIP USED</span><em id="slipTag"></em></div><div class="meter"><i id="gripBar"></i></div></div>
   </div>
   <div class="rbar" id="replayUI" hidden>
     <div class="pnl" id="replayLeg"></div>
@@ -293,6 +299,7 @@ ol.refs li{overflow-wrap:anywhere}
       <div class="ctl"><span class="ctl-label">ABS</span><div class="seg" id="runAbsSeg"></div><span class="hint">Off = older car without ABS: hard braking locks the wheels</span></div>
       <div class="ctl"><span class="ctl-label">Stability control (ESC)</span><div class="seg" id="runEscSeg"></div><span class="hint">Required on new light vehicles in Canada built since September 1, 2011 (CMVSS 126). Needs ABS.</span></div>
       <div class="ctl"><span class="ctl-label">Traction control</span><div class="seg" id="runTcsSeg"></div><span class="hint">Stops the driven wheels spinning. Needs ABS.</span></div>
+      <div class="ctl"><span class="ctl-label">Teaching mode</span><div class="seg" id="runTeachSeg"></div><span class="hint">On shows the grip meter and what the car is doing (ABS, sliding). Real cars give you no warning.</span></div>
     </div>
     <p class="hint" id="introGhost" hidden></p>
     <div class="row stick"><button type="button" class="btn btn-primary btn-big" id="goBtn">Drive</button><button type="button" class="btn" id="introMapBtn">Back to map</button></div>
@@ -302,6 +309,7 @@ ol.refs li{overflow-wrap:anywhere}
 <div class="overlay" id="ovPause" hidden>
   <div class="card">
     <h2>Paused</h2>
+    <div class="ctl"><span class="ctl-label">Teaching mode</span><div class="seg" id="pauseTeachSeg"></div></div>
     <div class="row"><button type="button" class="btn btn-primary" id="resumeBtn">Resume</button><button type="button" class="btn" id="restartBtn">Restart</button><button type="button" class="btn" id="pauseMapBtn">Map</button><button type="button" class="btn" id="learnBtn4">Learn</button></div>
   </div>
 </div>
@@ -425,6 +433,8 @@ ol.refs li{overflow-wrap:anywhere}
 <script src="js/tire-params.js"></script>
 <script src="js/physics.js"></script>
 <script src="js/road.js"></script>
+<script src="js/fair.js"></script>
+<script src="js/hazard-table.js"></script>
 <script>
 (function(){
 "use strict";
@@ -589,7 +599,7 @@ const SCEN = [
 function condAt(sc, s){ if (sc.zones) for (const z of sc.zones) if (s >= z[0] && s < z[1]) return z[2]; return sc.cond; }
 
 /* ================= State ================= */
-const S = {tire:'allseason', vehicle:'suv', drive:'awd', idx:0, runTire:'allseason', runDrive:'awd', runAbs:true, runEsc:true, runTcs:true, runTread:'new', runWeather:'clear', runTod:'day', sound:false,
+const S = {tire:'allseason', vehicle:'suv', drive:'awd', idx:0, runTire:'allseason', runDrive:'awd', runAbs:true, runEsc:true, runTcs:true, teach:false, runTread:'new', runWeather:'clear', runTod:'day', sound:false,
   results:SCEN.map(() => ({})), order:SCEN.map(() => []), recs:SCEN.map(() => null), recsByTire:SCEN.map(() => ({}))};
 const compOf = t => t === 'winter' ? 'allseason' : 'winter';
 const input = {left:false, right:false, gas:false, brake:false};
@@ -1135,16 +1145,17 @@ function buildVehicle(type, color, ghost){
     const t = new THREE.Mesh(Gm.tail, tail); t.position.set(s*(P.w/2 - .24), P.prof[P.prof.length - 1][1] - .2, P.L/2 + .02); g.add(t);
   });
   if (!ghost){ const roofY = Math.max.apply(null, P.prof.map(p => p[1])); const sn = new THREE.Mesh(new THREE.BoxGeometry(P.w*.7, .05, 1.2), M.roofSnow); sn.position.set(0, roofY + .04, .2); g.add(sn); }
+  const bodyG = new THREE.Group(); g.children.slice().forEach(k => bodyG.add(k)); g.add(bodyG);   // body only tilts (roll/pitch); wheels and shadow stay level
   const wheels = [];
   [-1, 1].forEach(sx => [-1, 1].forEach(sz => {
     const steer = new THREE.Group(); steer.position.set(sx*(P.w/2 - .1), P.r, sz*P.wb/2);
     const spin = new THREE.Group(); steer.add(spin);
     const t = new THREE.Mesh(Gm.tire, black); t.rotation.z = Math.PI/2; spin.add(t);
     const h = new THREE.Mesh(Gm.hub, rim); h.rotation.z = Math.PI/2; h.position.x = sx*.01; spin.add(h);
-    g.add(steer); wheels.push({steer, spin, front: sz < 0});
+    g.add(steer); wheels.push({steer, spin, front: sz < 0, idx: (sz < 0 ? 0 : 2) + (sx < 0 ? 0 : 1)});   // idx = physics wheel: 0 FL, 1 FR, 2 RL, 3 RR
   }));
   if (!ghost){ const sh = new THREE.Mesh(Gm.shadow, shadowMat); sh.rotation.x = -Math.PI/2; sh.position.y = .02; g.add(sh); }
-  g.userData = {P, wheels, tail, headL, len:P.L, w:P.w};
+  g.userData = {P, wheels, bodyG, tail, headL, len:P.L, w:P.w};
   return g;
 }
 function disposeTree(o){ o.traverse(m => { if (m.geometry && !SHARED_GEO.has(m.geometry)) m.geometry.dispose(); if (m.material){ (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => { if (!SHARED.has(x)){ if (x.map && !Object.values(SIGNTEX).includes(x.map)) x.map.dispose(); x.dispose(); } }); } }); }
@@ -1761,7 +1772,7 @@ function brakeLights(c, on){ c.userData.tail.emissive.set(on ? 0xff2020 : 0x0000
 function driveShare(drive){ const v = VEH[S.vehicle], d = drive || S.runDrive; return d === 'awd' || d === '4x4' ? 1 : d === 'fwd' ? v.front : v.rear; }
 
 /* Tire tracks and snow spray */
-const N_TRACK = 500, tracks = new THREE.InstancedMesh(new THREE.PlaneGeometry(.24, .7), M.track, N_TRACK); tracks.frustumCulled = false; world.add(tracks);
+const N_TRACK = 700, tracks = new THREE.InstancedMesh(new THREE.PlaneGeometry(.24, .7), M.track, N_TRACK); tracks.frustumCulled = false; world.add(tracks);
 let trackI = 0, trackDist = 0;
 function clearTracks(){ dummy.scale.setScalar(0); dummy.updateMatrix(); for (let i = 0; i < N_TRACK; i++) tracks.setMatrixAt(i, dummy.matrix); tracks.instanceMatrix.needsUpdate = true; dummy.scale.setScalar(1); trackI = 0; }
 clearTracks();
@@ -1783,7 +1794,7 @@ function prepRun(){
     t:0, phase:'ready', trig:false, trigT:0, rt:null, vTrig:null, D:null, entryV:null, curveMax:0, crossings:0, wasLeft:false,
     offroad:false, offV:0, offSide:0, gripUse:0, tag:'', slip:false, stillT:0, light:'g', lightT:0, crossGo:false, crossX:[-40, -58],
     crossLight:null, pedState:0, deerT:0, rec:[], ghostRec:S.recs[S.idx], gi:0, endWait:0, outcome:null, green:false,
-    weather:S.runWeather || 'clear', T:runTemp(sc, S.runWeather), arcs:arcsOf(sc.path), stopT:0, elkGap:0, elkSt:null, elkGo:null, spinT:-1, wd:0, wdT:0, wdV:-99, trigS:null,
+    weather:S.runWeather || 'clear', T:runTemp(sc, S.runWeather), arcs:arcsOf(sc.path), stopT:0, elkGap:0, elkSt:null, elkGo:null, spinT:-1, wd:0, trigS:null,
     finishS: sc.finishS || (sc.kind === 'curve' ? arcsOf(sc.path).slice(-1)[0].s1 + 40 : level.L - 25)};
   { const grip = WTGrip.make(WTTireParams.fixes);
     run.sim = WTPhys.createSim({vehicle:WTVehicles[S.vehicle], vehicleKey:S.vehicle, grip, params:WTTireParams, env:WTRoad.roadEnv(sc, P, grip, run.weather, sc.startS),
@@ -1815,7 +1826,9 @@ function prepRun(){
 }
 function poseCar(){
   car.position.set(run.x, 0, run.z); car.rotation.set(0, run.psi - run.vis, 0);
-  car.userData.wheels.forEach(o => { if (o.front) o.steer.rotation.y = run.steer*.45; });
+  const st = run.sim && run.sim.st;
+  car.userData.wheels.forEach(o => { if (o.front) o.steer.rotation.y = st ? st.delta : run.steer*.45; });
+  if (car.userData.bodyG){ const bg = car.userData.bodyG; bg.rotation.z = st ? -clamp(st.ays/6, -1, 1)*.04 : 0; bg.rotation.x = st ? clamp(st.axs/5, -1, 1)*.035 : 0; }   // cosmetic roll and pitch, at most about 2.3 and 2 degrees
 }
 
 /* Physics v2 (js/physics.js): a fixed 1 ms step fed from an accumulator, so the frame rate never reaches the physics.
@@ -1877,11 +1890,11 @@ function rectsHit(a, b){   // separating-axis test
 // The car's real footprint at its real yaw against a box that is square to the road
 function hitBox(s0, s1, o0, o1){ return rectsHit(run.cb, rect((s0 + s1)/2, (o0 + o1)/2, (s1 - s0)/2, (o1 - o0)/2, 0)); }
 function roadYaw(r){ const d = r.psi - r.P[r.hint].psi; return Math.atan2(Math.sin(d), Math.cos(d)); }
-// Trigger distance: a prepared driver (winter tires, new tread, ABS) on today's surface and temperature
-// measured along the whole stopping path from s0 (the car's front; defaults to where the hazard was triggered)
-function warnDist(v, s0){
-  const r = run; if (s0 == null) s0 = r.trigS != null ? r.trigS : r.s + PROF[VEH[S.vehicle].type].L/2;
-  return Math.min(2000, stopRun('winter', r.sc, s0, Math.max(0, v), {weather:r.weather, vehicle:S.vehicle, tread:'new', abs:true, rt:1.0}).dist + 2.5);
+// Trigger distance: where a prepared driver in this vehicle (winter tires, new tread, ABS and ESC, reacting in 1.0 s)
+// just stops 2.5 m short, from the full simulation (js/fair.js) via its precomputed table (js/hazard-table.js)
+function warnDist(v){
+  const r = run, key = r.sc.id + '|' + S.vehicle + '|' + (r.weather === 'blowing' ? 'clear' : r.weather);
+  return WTFair.lookup(WTFair.row(WTHazTable, key), v);
 }
 // Lead car's half extents along the road (hs) and across it (ho) at its current yaw
 function leadExt(L){ const c = Math.abs(Math.cos(L.yaw)), n = Math.abs(Math.sin(L.yaw)); L.hs = L.len/2*c + L.w/2*n; L.ho = L.len/2*n + L.w/2*c; }
@@ -1917,8 +1930,7 @@ function hazards(dt){
     return;
   }
   if (!H) return;
-  // stopRun is costly, so refresh the trigger distance 5 times a second or when speed changes
-  if (!r.trig && (r.t >= r.wdT || Math.abs(r.v - r.wdV) > .3)){ r.wd = warnDist(r.v, front); r.wdT = r.t + .2; r.wdV = r.v; }
+  if (!r.trig) r.wd = warnDist(r.v);   // a table lookup, so every frame
   if (!r.trig && front >= H.s - r.wd){
     r.trig = true; r.trigS = front; r.trigT = r.t; r.vTrig = Math.max(0, r.v); r.D = Math.max(0, H.s - front); if (input.brake) r.rt = 0;
     if (H.type === 'light'){ r.light = 'y'; r.lightT = r.t; setSignal('y'); }
@@ -2083,7 +2095,10 @@ function updateHud(){
   $('spd').textContent = kmh; $('speedBox').classList.toggle('over', kmh > run.sc.limit + 5);
   const g = Math.min(1, run.gripUse), bar = $('gripBar');
   bar.style.width = (g*100) + '%'; bar.style.background = g < .7 ? 'var(--ok)' : g < .97 ? 'var(--warn)' : 'var(--danger)';
-  $('slipTag').textContent = run.tag;
+  $('slipTag').textContent = run.tag; $('gripBox').hidden = !S.teach;
+  const st = run.sim && run.sim.st, el = $('escLight'), act = !!(S.runEsc && st && (st.esc || st.tcs));
+  el.className = 'escl' + (!S.runEsc ? ' off' : act ? ' act' : ''); el.textContent = S.runEsc ? 'ESC' : 'ESC OFF';
+  el.setAttribute('aria-label', S.runEsc ? 'Stability control active' : 'Stability control off');
 }
 
 /* ================= Map ================= */
@@ -2123,13 +2138,15 @@ function optButtons(el, opts, get, set, atmo){
   });
   el._get = get;
 }
-const runSegs = ['runWeatherSeg','runTodSeg','runTreadSeg','runAbsSeg','runEscSeg','runTcsSeg'];
+const runSegs = ['runWeatherSeg','runTodSeg','runTreadSeg','runAbsSeg','runEscSeg','runTcsSeg','runTeachSeg','pauseTeachSeg'];
 optButtons($('runWeatherSeg'), Object.keys(WEATHER).map(k => [k, WEATHER[k].name]), () => S.runWeather, k => { S.runWeather = k; }, true);
 optButtons($('runTodSeg'), Object.keys(TOD).map(k => [k, TOD[k].name]), () => S.runTod, k => { S.runTod = k; }, true);
 optButtons($('runTreadSeg'), [['new','New'], ['half','Half worn'], ['limit','Near the limit']], () => S.runTread, k => { S.runTread = k; });
 optButtons($('runAbsSeg'), [['on','On'], ['off','Off']], () => S.runAbs ? 'on' : 'off', k => { S.runAbs = k === 'on'; });
 optButtons($('runEscSeg'), [['on','On'], ['off','Off']], () => S.runEsc ? 'on' : 'off', k => { S.runEsc = k === 'on'; });
 optButtons($('runTcsSeg'), [['on','On'], ['off','Off']], () => S.runTcs ? 'on' : 'off', k => { S.runTcs = k === 'on'; });
+optButtons($('runTeachSeg'), [['off','Off'], ['on','On']], () => S.teach ? 'on' : 'off', k => { S.teach = k === 'on'; });
+{ const el = $('pauseTeachSeg'); [['off','Off'], ['on','On']].forEach(([k, n]) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.k = k; b.textContent = n; b.addEventListener('click', () => { S.teach = k === 'on'; syncRun(); updateHud(); }); el.appendChild(b); }); el._get = () => S.teach ? 'on' : 'off'; }
 function renderFacts(){
   const sc = SCEN[S.idx], w = S.runWeather, c0 = surfaceAt(sc, 0, w), c1 = sc.zones ? surfaceAt(sc, sc.zones[0][0], w) : c0;
   $('introFacts').innerHTML = '<span><b>' + COND[c0].name + '</b>' + (c1 !== c0 ? ', then <b>' + COND[c1].name.toLowerCase() + '</b>' : '') + '</span><span><b>' + deg(runTemp(sc, w)) + '</b></span><span>Limit <b>' + sc.limit + ' km/h</b></span>' + (sc.advisory ? '<span>Advisory <b>' + sc.advisory + ' km/h</b></span>' : '') + (sc.grade ? '<span><b>' + Math.abs(sc.grade) + '% ' + (sc.grade < 0 ? 'downhill' : 'uphill') + '</b></span>' : '');
@@ -2412,15 +2429,20 @@ function frame(now){
       while (acc > 1e-6 && run.phase === 'drive'){ const h = Math.min(1/120, acc); step(h); run.t += h; hazards(h); acc -= h; }
       if (run.phase === 'drive') checkEnd(dt);
       run.rec.push([run.t, run.x, run.z, run.psi - run.vis]);
-      const spinA = run.tag === 'LOCKED' ? 0 : run.v*dt/PROF[VEH[S.vehicle].type].r; car.userData.wheels.forEach(o => o.spin.rotation.x -= spinA);
+      if (run.offroad) { const spinA = run.v*dt/PROF[VEH[S.vehicle].type].r; car.userData.wheels.forEach(o => o.spin.rotation.x -= spinA); }
+      else car.userData.wheels.forEach(o => o.spin.rotation.x -= run.sim.st.w[o.idx].om*dt);   // each wheel turns at its own spin rate
       brakeLights(car, input.brake);
       if (ghost && run.ghostRec){ const rec = run.ghostRec.rec; while (run.gi < rec.length - 1 && rec[run.gi + 1][0] <= run.t) run.gi++; const g = rec[run.gi]; if (g){ ghost.position.set(g[1], 0, g[2]); ghost.rotation.set(0, g[3], 0); } }
       // Tire tracks on snow, slush and gravel
       const ck = surfaceAt(run.sc, run.s, run.weather);
       trackDist += Math.abs(run.v)*dt;
-      if (trackDist > .55 && ck !== 'dry' && ck !== 'black' && ck !== 'polished'){
-        trackDist = 0; const P = PROF[VEH[S.vehicle].type], fx = -Math.sin(run.psi), fz = -Math.cos(run.psi), lx = Math.cos(run.psi), lz = -Math.sin(run.psi);
-        [-1, 1].forEach(sd => { const x = run.x - fx*P.wb/2 + lx*sd*(P.w/2 - .2), z = run.z - fz*P.wb/2 + lz*sd*(P.w/2 - .2); dummy.position.set(x, .03, z); dummy.rotation.set(-Math.PI/2, 0, run.psi); dummy.updateMatrix(); tracks.setMatrixAt(trackI++ % N_TRACK, dummy.matrix); });
+      if (trackDist > .55 && ck !== 'dry' && ck !== 'black' && ck !== 'polished' && !run.offroad){
+        trackDist = 0; const st = run.sim.st, mv = Math.abs(st.u) > 1, pT = Math.atan2(-(-Math.sin(st.psi)*st.u - Math.cos(st.psi)*st.v), -(-Math.cos(st.psi)*st.u + Math.sin(st.psi)*st.v));
+        st.w.forEach(w => {
+          const sl = w.locked || (mv && Math.hypot(w.kap, w.alp) > 1.5*w.kpk);   // sliding wheels mark along the way they travel; rolling rear wheels leave plain tracks
+          if (!sl && w.i < 2) return;
+          dummy.position.set(w.x, .03, w.z); dummy.rotation.set(-Math.PI/2, 0, sl && mv ? pT : st.psi); dummy.updateMatrix(); tracks.setMatrixAt(trackI++ % N_TRACK, dummy.matrix);
+        });
         dummy.rotation.set(0, 0, 0); tracks.instanceMatrix.needsUpdate = true;
       }
       if (run.tag && run.tag !== 'ABS' && Math.abs(run.v) > 1.5 && ck !== 'dry'){ const P = PROF[VEH[S.vehicle].type]; for (let k = 0; k < 2; k++){ const sd = k ? 1 : -1, x = run.x + Math.sin(run.psi)*P.wb/2 + Math.cos(run.psi)*sd*P.w/2, z = run.z + Math.cos(run.psi)*P.wb/2 - Math.sin(run.psi)*sd*P.w/2; emitSpray(x, z, Math.sin(run.psi)*2, Math.cos(run.psi)*2); } }
@@ -2432,8 +2454,17 @@ function frame(now){
     }
     poseCar();
     if (level && level.stopped && run.trig) level.stopped.forEach(c => brakeLights(c.obj, Math.floor(now/420) % 2 === 0));
-    let dpsi = run.psi - camPsi; dpsi = Math.atan2(Math.sin(dpsi), Math.cos(dpsi));
-    camPsi += snapCam ? dpsi : dpsi*(1 - Math.exp(-dt*4));
+    // Camera looks along the direction of travel (heading at low speed), smoothed with a 0.35 s filter; cosmetic only
+    let tPsi = run.psi;
+    if (run.sim && !run.offroad){
+      const st = run.sim.st, sp = Math.hypot(st.u, st.v), a = Math.min(1, Math.max(0, (sp - 2)/4)), wt = st.u > 0 ? a*a*(3 - 2*a) : 0;
+      if (wt > 0){
+        const wx = -Math.sin(st.psi)*st.u - Math.cos(st.psi)*st.v, wz = -Math.cos(st.psi)*st.u + Math.sin(st.psi)*st.v;
+        tPsi = Math.atan2(-((1 - wt)*-Math.sin(st.psi) + wt*wx/sp), -((1 - wt)*-Math.cos(st.psi) + wt*wz/sp));
+      }
+    }
+    let dpsi = tPsi - camPsi; dpsi = Math.atan2(Math.sin(dpsi), Math.cos(dpsi));
+    camPsi += snapCam ? dpsi : dpsi*(1 - Math.exp(-dt/.35));
     const fx = -Math.sin(camPsi), fz = -Math.cos(camPsi);
     // Portrait screens are narrow, so pull the camera back and up to show more road past the car
     const port = camera.aspect < 1, cb = port ? 11.5 : 8.5;

@@ -7,7 +7,8 @@
     "test": "node --test \"test/**/*.test.js\"",
     "test:e2e": "playwright test --workers=1",
     "calibrate": "node scripts/calibrate.js",
-    "validate": "node scripts/validate.js"
+    "validate": "node scripts/validate.js",
+    "fairness": "node scripts/fairness.js"
   },
   "license": "MIT",
   "devDependencies": {
