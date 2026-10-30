@@ -100,6 +100,15 @@ const CACHE = process.env.FAIR_CACHE || '';
 const HOT = 90, WATCH_MS = 30000;
 function cpuTemp(){ try { const l = require('child_process').execFileSync(process.execPath, [path.join(require('os').homedir(), 'claude-coord', 'coord.js'), 'check'], {encoding:'utf8'}); const m = /CPU (\d+) C/.exec(l); return m ? +m[1] : null; } catch (e){ return null; } }
 if (require.main === module){
+  // FAIR_PARTIAL=1: write a table from the rows finished so far (a running build's cache); missing rows fall back to the
+  // v1 estimate in the game, and test/fair.test.js stays red until the full build replaces the file
+  if (process.env.FAIR_PARTIAL){
+    const os = require('os'), fp = fingerprint(), dir = path.join(os.tmpdir(), 'wt-fair-' + fp);
+    process.env.FAIR_CACHE = ''; const T = build({i:-1, n:1});
+    for (const k in T){ const f = path.join(dir, k.replace(/\|/g, '_') + '.json'); if (T[k] === null && fs.existsSync(f)) T[k] = JSON.parse(fs.readFileSync(f, 'utf8')); }
+    for (const k in T) if (T[k] === null || (typeof T[k] === 'string' && T[T[k]] == null)) delete T[k];
+    console.log('partial table:', Object.keys(T).length, 'rows'); write(fp + '-partial', T); process.exit(0);
+  }
   const SH = process.env.FAIR_SHARD;
   if (SH){ const [i, n] = SH.split('/').map(Number); fs.writeFileSync(process.env.FAIR_OUT, JSON.stringify(build({i, n}))); process.exit(0); }
   const fp = fingerprint(), jobs = ONLY ? 1 : Math.max(1, +process.env.FAIR_JOBS || 1);

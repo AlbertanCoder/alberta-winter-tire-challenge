@@ -36,6 +36,27 @@ In order, for the next session:
 Laptop: heat is the limit (4 Node cores hit 95 C in a minute); heavy jobs take the lock, pause at 90 C twice, and alternate with the
 Kinan session (a hidden background Claude Code session on this laptop; it also runs builder copies). Rules: ~/claude-coord/README.md.
 
+### Rough-draft status 2026-10-30 ~11:40Z (newest; read this first)
+- Built and committed (all NOT yet looked at by a human in a browser): fair hazards from the full sim (js/fair.js + table),
+  Teaching mode, ESC light, travel-direction camera, real wheel spin/steer, per-wheel skid marks, body roll/pitch, road crown
+  (Alberta AGDG C.1.2) + seeded crosswind (js/wind.js), overpass-spin scenario 'overspin', ?test=1 hooks + e2e suite,
+  rough same-steering comparison (js/compare.js) and rough X-ray replay. npm unit tests for compare 5/5, road 3/3.
+- js/hazard-table.js is a PARTIAL table (135 of 210 keys; fingerprint ends in -partial, so test/fair.test.js is red on
+  purpose). Missing rows fall back to the v1 1-D estimate in warnDist. The full build continues detached; when its log says
+  "wrote js/hazard-table.js" (non-partial), commit it.
+- Browser pass (desktop, winter, ESC on), 15 scenarios: all load with NO console errors and reach a result. After giving the
+  e2e test driver the fairness reference driver's steering (WTT.wheel = js/fair.js KEEP rule), 13 of 15 safe. Open:
+  (1) henday: scripted driver hits the stopped cars at 5 km/h although the table equals the full sim within 0.01 m at
+      100 km/h. Suspects: hazard trigger and the test driver's brake are evaluated once per 1/60 s frame (up to ~0.5 m each
+      late at 100 km/h); the car's sideslip/yaw state after 25 s of lane keeping on black ice vs the reference's clean start.
+      Fix idea: evaluate the trigger and the scripted brake inside the 1 ms physics loop.
+  (2) frzrain: the spinning lead car still slides on the v1 1-D decel (hazards(), H.type 'spin'); move it to the full sim
+      or a sim-derived stop so it lands where winter tires can stop.
+- Laptop rule slip (2026-10-30 ~11:35Z): one ~1 min browser run started without the lock (a retry loop fell through).
+  Always chain: lock && run && unlock.
+- Not started (after the reset): tilt/gamepad/wheel inputs (Phase 3), the other 3 new scenarios, Wind run option, across-road
+  surface zones, ruts/slush, Physics check bars from the sim, docs/Learn rewrite, media, final Fable review, finish.
+
 ## Phase checklist (brief section 6)
 - [x] Phase 0, setup: section 0, section 9 kit + status line, index.html read once, plan, package.json with Playwright
 - [x] Phase 1, physics core, tires, vehicles, calibration (no game changes); first Fable check

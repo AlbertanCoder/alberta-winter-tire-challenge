@@ -1883,6 +1883,7 @@ function step(dt){
     // v1's steering cap (about 0.45 g at speed), as a road-wheel angle, then through the steering ratio (positive = left)
     const sp = Math.max(1, Math.abs(st.u)), dMax = Math.min(V.maxWheelDeg*Math.PI/180, Math.atan(V.L*4.5/(sp*sp)));
     inp.steer = -r.steer*dMax*180/Math.PI*V.steerRatio;
+    if (WTT && WTT.kind === 'test') inp.steer = WTT.wheel(r, st, V);   // test hook: the fairness reference driver's steering
     inp.brake = input.brake || hold ? 1 : 0;
     if (input.gas && !hold){ inp.throttle = GAS_INTERIM; r.cruiseV = null; }
     else if (!sc.noCruise && !input.brake && st.u > .5){ if (r.cruiseV == null) r.cruiseV = st.u; inp.throttle = clamp((r.cruiseV - st.u)*1.5, 0, 1); }
@@ -1929,7 +1930,12 @@ function roadYaw(r){ const d = r.psi - r.P[r.hint].psi; return Math.atan2(Math.s
 // just stops 2.5 m short, from the full simulation (js/fair.js) via its precomputed table (js/hazard-table.js)
 function warnDist(v){
   const r = run, key = r.sc.id + '|' + S.vehicle + '|' + (r.weather === 'blowing' ? 'clear' : r.weather);
-  return WTFair.lookup(WTFair.row(WTHazTable, key), v);
+  const row = WTFair.row(WTHazTable, key);
+  if (row) return WTFair.lookup(row, v);
+  // Row not built yet (a partial table): the v1 1-D estimate (about 2% off the full simulation), memoised per 0.25 m/s
+  const m = r.wdMemo || (r.wdMemo = {}), b = Math.round(Math.max(0, v)*4);
+  if (m[b] == null) m[b] = Math.min(2000, stopRun('winter', r.sc, r.s + PROF[VEH[S.vehicle].type].L/2, b/4, {weather:r.weather, vehicle:S.vehicle, tread:'new', abs:true, rt:1.0}).dist + 2.5);
+  return m[b];
 }
 // Lead car's half extents along the road (hs) and across it (ho) at its current yaw
 function leadExt(L){ const c = Math.abs(Math.cos(L.yaw)), n = Math.abs(Math.sin(L.yaw)); L.hs = L.len/2*c + L.w/2*n; L.ho = L.len/2*n + L.w/2*c; }
@@ -2647,10 +2653,17 @@ if (/[?&]test=1(&|$)/.test(location.search)){
         input.left = !!cur.left; input.right = !!cur.right; input.gas = !!cur.gas; input.brake = !!cur.brake;
         this.steer = null; return;
       }
-      // 'test': no pedals (the game holds speed), proportional lane keeping, full brake 1.0 s after the hazard trigger
-      this.steer = clamp(-0.25*(r.off - LANE) + 1.5*roadYaw(r), -1, 1);
+      // 'test': no pedals (the game holds speed), the fairness reference driver's lane keeping (wheel(), applied per
+      // physics step in step()), full brake 1.0 s after the hazard trigger
+      this.steer = 0;
       input.left = input.right = input.gas = false;
       input.brake = r.trig && r.t - r.trigT >= 1.0;
+    },
+    // Steering-wheel angle (deg) from the same rule and gains as js/fair.js refStop: path curvature + lane offset + heading
+    wheel(r, st, V){
+      const L = locate(r.P, st.x, st.z, this.hint || r.hint); this.hint = L.i;
+      const K = WTFair.KEEP, eh = Math.atan2(Math.sin(st.psi - r.P[L.i].psi), Math.cos(st.psi - r.P[L.i].psi));
+      return (Math.atan(V.L*r.P[L.i].k)*K.path + K.off*(L.off - LANE) - K.head*eh)*180/Math.PI*V.steerRatio;
     },
     // One extra fixed 1/60 s frame of the same loop as frame()
     frame(){
@@ -2678,7 +2691,7 @@ if (/[?&]test=1(&|$)/.test(location.search)){
       if (o.weather) S.runWeather = o.weather;
       if (o.tod) S.runTod = o.tod;
       prepRun(); applyNight(); syncRun();
-      WTT.kind = null; WTT.tl = null; WTT.steer = null; Object.keys(input).forEach(k => input[k] = false);
+      WTT.kind = null; WTT.tl = null; WTT.steer = null; WTT.hint = 0; Object.keys(input).forEach(k => input[k] = false);
       $('goBtn').click();   // same as the Start button on the intro card
     },
     driver(kind, tl){ WTT.kind = kind; WTT.tl = tl || null; },
