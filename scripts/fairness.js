@@ -22,7 +22,7 @@ const DUTY = Math.min(1, Math.max(.1, +process.env.FAIR_DUTY || 1));   // share 
 const ONLY = process.env.FAIR_ONLY || '';   // one row only, printed, not written (a quick check)
 // shard = {i, n}: compute only distinct rows j with j % n === i (others come back null); i = -1 computes none (a plan)
 function build(shard){
-  const D = F.deps(), out = {}, seen = {}, t0 = Date.now(); let worst = 0, n = 0, extra = 0, uniq = 0;
+  const D = F.deps(), out = {}, seen = {}, noStop = [], t0 = Date.now(); let worst = 0, n = 0, extra = 0, uniq = 0;
   for (const sc of F.FAIR_SCEN) for (const veh of Object.keys(F.VTYPE)) for (const w of F.WEATHERS){
     const key = sc.id + '|' + veh + '|' + w;
     if (ONLY && ONLY !== key) continue;
@@ -40,7 +40,15 @@ function build(shard){
     const solve = (v, guess) => {
       if (part[v] != null) return part[v];
       const ts = Date.now();
+      // Where the 1-D model says no stop is possible, one full-sim stop from the farthest trigger point settles it cheaply
+      if (!isFinite(F.legacyWarn(c, v))){
+        const hiD = c.Hs + 1000, d = F.Fair.refStop(D, sc, c.P, Object.assign({}, c.o, {v, front:c.Hs - hiD}));
+        if (d + F.Fair.MARGIN > hiD){ noStop.push(sc.id + '|' + veh + '|' + w + '@' + v); part[v] = hiD; return hiD; }
+      }
       const r = F.Fair.solveWarn(D, sc, c.P, Object.assign({}, c.o, {v}), c.Hs, guess != null ? guess : F.legacyWarn(c, v));
+      // Can't stop at all (e.g. glaze on a 6% downhill: gravity beats braking grip): the hazard appears as early as the
+      // solver allows, 1 km before the road starts, so it is visible from the start (the v1 game capped this case too)
+      if (r.width === Infinity && r.err > 0 && r.D >= c.Hs + 999){ noStop.push(sc.id + '|' + veh + '|' + w + '@' + v); r.err = 0; r.width = 0; }
       if (Math.abs(r.err) > .05 && !(r.width < .02)) throw new Error('no converged warning distance: ' + JSON.stringify({id:sc.id, veh, w, v, r}));
       worst = Math.max(worst, Math.min(Math.abs(r.err), r.width)); n++;
       part[v] = Math.round(r.D*100)/100;
@@ -70,6 +78,7 @@ function build(shard){
     out[key] = [].concat(...rowPts);
     if (cf){ fs.writeFileSync(cf + '.tmp', JSON.stringify(out[key])); fs.renameSync(cf + '.tmp', cf); if (fs.existsSync(pf)) fs.unlinkSync(pf); }
   }
+  if (noStop.length) console.log('reference driver cannot stop (hazard shown from the start):', noStop.join(' '));
   console.log('solved', n, 'speeds (' + extra + ' extra at bends) in', ((Date.now() - t0)/1000).toFixed(0), 's; worst solver residual', worst.toFixed(3), 'm');
   return out;
 }
