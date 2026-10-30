@@ -36,6 +36,10 @@ In order, for the next session:
 Laptop: heat is the limit (4 Node cores hit 95 C in a minute); heavy jobs take the lock, pause at 90 C twice, and alternate with the
 Kinan session (a hidden background Claude Code session on this laptop; it also runs builder copies). Rules: ~/claude-coord/README.md.
 
+### PUBLISHED 2026-10-30 ~14:10Z at Shad's request: physics-v2 rough draft merged into main (ac5a12e), GitHub Pages rebuilt and
+### live. Undo: git revert -m 1 ac5a12e on main. LinkedIn post + message drafted at Desktop/linkedin-post-v2.md (Shad posts them;
+### no automated LinkedIn actions). Sign posts moved behind sign faces (91f673d). Keep working on physics-v2; merge again when ready.
+
 ### Rough-draft status 2026-10-30 ~11:40Z (newest; read this first)
 - Built and committed (all NOT yet looked at by a human in a browser): fair hazards from the full sim (js/fair.js + table),
   Teaching mode, ESC light, travel-direction camera, real wheel spin/steer, per-wheel skid marks, body roll/pitch, road crown
