@@ -14,7 +14,7 @@ function recorder(){
   }};
 }
 // deps = {Phys, Road, grip, params, vehicles}; o as in the brief (sc, P, weather, T, vehicle, drive, tire, tread, abs, esc,
-// tcs, x, z, psi, u, wind, inputs, half, maxT). Returns {tele:[{t, s, off, u, yawDeg}] every 20 ms, summary, end:{x, z, psi, u}}
+// tcs, x, z, psi, u, wind, inputs, half, maxT, wheels:bool adds per-wheel data to tele). Returns {tele:[{t, s, off, u, yawDeg}] every 20 ms, summary, end:{x, z, psi, u}}
 function replay(deps, o){
   const {Phys, Road, grip, params} = deps, sc = o.sc, P = o.P, V = deps.vehicles[o.vehicle];
   const sim = Phys.createSim({vehicle:V, vehicleKey:o.vehicle, grip, params, env:Road.roadEnv(sc, P, grip, o.weather, sc.startS, o.wind || null),
@@ -33,7 +33,16 @@ function replay(deps, o){
       if (ay > maxYaw) maxYaw = ay; if (ay > 90) spun = true;
       if (hs != null && hitAt == null && L.s + o.half >= hs) hitAt = Math.max(0, st.u)*3.6;
       if (!offRoad){ let side = 0; for (const w of st.w){ const f = Road.locate(P, w.x, w.z, hint).off; if (Math.abs(f) > Road.HW) side += Math.sign(f); } if (Math.abs(side) === 4) offRoad = true; }
-      if (n % 20 === 0) tele.push({t:st.t, s:L.s, off:L.off, u:st.u, yawDeg:yaw});
+      if (n % 20 === 0){
+        const e = {t:st.t, s:L.s, off:L.off, u:st.u, yawDeg:yaw};
+        if (o.wheels){   // X-ray extras (brief 4.8): w = [x, z, Fx, Fy (wheel frame, N), Fmax, locked, Fz] per wheel
+          const q = v => Math.round(v*10)/10;
+          e.w = st.w.map(w => [q(w.x), q(w.z), Math.round(w.Fx), Math.round(w.Fy), Math.round(w.Fmax), w.locked ? 1 : 0, Math.round(w.Fz)]);
+          e.x = st.x; e.z = st.z; e.psi = st.psi; e.slipDeg = Math.atan2(st.v, st.u)*R2D; e.delta = st.delta || 0;
+          e.steer = inp.steer; e.thr = inp.throttle; e.brk = inp.brake;
+        }
+        tele.push(e);
+      }
     }
   }
   L = Road.locate(P, st.x, st.z, hint);

@@ -130,6 +130,10 @@ body.replaying .topl,body.replaying .topr,body.replaying .dash,body.replaying .c
 .stick{position:sticky;bottom:0;background:var(--surface);padding:10px 0 4px;margin-bottom:-4px;z-index:1;box-shadow:0 -1px 0 var(--line)}
 @media (max-height:480px){ .card{padding:14px;gap:9px} .card h2{font-size:1.2rem} .lede{font-size:.95rem} .facts{font-size:.82rem} }
 .sw{display:inline-block;width:.7em;height:.7em;border-radius:50%;background:var(--c);margin-right:6px}
+.xr{align-items:stretch}.xr .card{max-width:980px;height:100%;max-height:100%}.xrp{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0}
+.xrp figure{margin:0;display:flex;flex-direction:column;gap:4px}.xrp canvas{width:100%;height:46vh;background:#1c2128;border-radius:10px;display:block}
+.xrc{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.xrc input[type=range]{flex:1;min-width:140px}
+@media (max-width:699px){.xrp{grid-template-columns:1fr}.xrp canvas{height:30vh}}
 .btn-primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
 .btn-big{font-size:1.05rem;padding:13px 20px;min-height:50px}
 .row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end}
@@ -314,12 +318,26 @@ ol.refs li{overflow-wrap:anywhere}
   </div>
 </div>
 
+<div class="overlay xr" id="xrayOv" role="dialog" aria-modal="true" aria-labelledby="xrT" hidden>
+  <div class="card">
+    <h2 id="xrT">X-ray replay</h2>
+    <div class="xrp"><figure><canvas id="xrA" role="img" aria-label="Top-down view, your tires"></canvas><figcaption class="hint" id="xrCapA"></figcaption></figure>
+    <figure><canvas id="xrB" role="img" aria-label="Top-down view, comparison tires"></canvas><figcaption class="hint" id="xrCapB"></figcaption></figure></div>
+    <div class="xrc"><button type="button" class="btn" id="xrPlay">Play</button>
+      <button type="button" class="btn" data-sp="0.25" aria-pressed="false">0.25x</button><button type="button" class="btn" data-sp="0.5" aria-pressed="false">0.5x</button><button type="button" class="btn" data-sp="1" aria-pressed="true">1x</button>
+      <label for="xrScrub" class="hint">Time</label><input type="range" id="xrScrub" min="0" max="0" value="0" step="1">
+      <label class="hint"><input type="checkbox" id="xrNum"> Show numbers</label>
+      <button type="button" class="btn" id="xrClose">Close (Esc)</button></div>
+  </div>
+</div>
+
 <div class="overlay" id="ovResult" hidden>
   <div class="card" aria-live="polite">
     <span class="ctl-label" id="resKicker"></span>
     <h2 id="resTitle"></h2>
     <div class="runs" id="resRuns"></div>
     <p class="hint" id="sameInputs" hidden></p>
+    <button type="button" class="btn" id="xrayBtn" hidden>X-ray replay</button>
     <div class="stack">
       <h3 style="font-size:.95rem" id="physTitle"></h3>
       <div class="bars" id="physBars"></div>
@@ -2244,16 +2262,98 @@ const recent = SCEN.map(() => []);
 let replayBtn = null;
 // Replays this run's recorded inputs on the player's tire and the comparison tire (brief 4.7). Never breaks the results screen.
 function sameInputs(){
-  const el = $('sameInputs'); el.hidden = true;
+  const el = $('sameInputs'); el.hidden = true; $('xrayBtn').hidden = true;
   try {
     const r = run, sc = r.sc, st = r.start, comp = compOf(S.runTire);
     const D = {Phys:WTPhys, Road:WTRoad, grip:WTGrip.make(WTTireParams.fixes), params:WTTireParams, vehicles:WTVehicles};
     const go = tire => WTCompare.replay(D, {sc, P:r.P, weather:r.weather, T:r.T, vehicle:S.vehicle, drive:S.runDrive, tire, tread:S.runTread, abs:S.runAbs, esc:S.runEsc, tcs:S.runTcs,
       x:st.x, z:st.z, psi:st.psi, u:st.u, wind:r.wind, inputs:r.irec.list, half:PROF[VEH[S.vehicle].type].L/2, maxT:60}).summary;
     const nm = k => TIRE[k].name.toLowerCase();
-    el.textContent = WTCompare.describe(go(S.runTire), go(comp), nm(S.runTire), nm(comp), sc); el.hidden = false;
+    el.textContent = WTCompare.describe(go(S.runTire), go(comp), nm(S.runTire), nm(comp), sc); el.hidden = false; $('xrayBtn').hidden = false;
   } catch (e){ console.warn('same-input replay failed', e); }
 }
+// X-ray replay (brief 4.8, rough draft): top-down per-wheel grip and force for both tires. Never breaks the results screen.
+const XR = {a:null, b:null, i:0, sp:1, play:false, num:false, raf:0, last:0, acc:0, info:null};
+function xrayData(){
+  const r = run, sc = r.sc, st = r.start, comp = compOf(S.runTire);
+  const D = {Phys:WTPhys, Road:WTRoad, grip:WTGrip.make(WTTireParams.fixes), params:WTTireParams, vehicles:WTVehicles};
+  const go = tire => WTCompare.replay(D, {sc, P:r.P, weather:r.weather, T:r.T, vehicle:S.vehicle, drive:S.runDrive, tire, tread:S.runTread, abs:S.runAbs, esc:S.runEsc, tcs:S.runTcs,
+    x:st.x, z:st.z, psi:st.psi, u:st.u, wind:r.wind, inputs:r.irec.list, half:PROF[VEH[S.vehicle].type].L/2, maxT:60, wheels:true}).tele;
+  return {a:go(S.runTire), b:go(comp), P:r.P, prof:PROF[VEH[S.vehicle].type], na:TIRE[S.runTire].name, nb:TIRE[comp].name};
+}
+function xrCaption(T, i){
+  const j = Math.min(i, T.length - 1), e = T[j], p = T[Math.max(0, j - 1)], pct = w => w[4] > 0 ? Math.hypot(w[2], w[3])/w[4] : 0;
+  if (Math.abs(e.slipDeg) > 90) return 'Spun out.';
+  if (e.w[0][5] || e.w[1][5]) return 'Front wheels locked: steering does nothing.';
+  if (pct(e.w[2]) > .97 && pct(e.w[3]) > .97 && Math.abs(e.slipDeg) > Math.abs(p.slipDeg)) return 'The rear tires are at their grip limit. The back end swings out.';
+  return 'Tires within their grip.';
+}
+function xrDraw(cv, T, d, i){
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height, e = T[Math.min(i, T.length - 1)], P = d.P, dpr = W/Math.max(1, cv.clientWidth);
+  const k = Math.min(H/26, W/13), L = WTRoad.locate(P, e.x, e.z, Math.max(0, Math.floor(e.s) - 3)), rp = P[L.i].psi;
+  const fx = -Math.sin(rp), fz = -Math.cos(rp), rx = Math.cos(rp), rz = -Math.sin(rp);   // road forward and right, in world x,z
+  const X = (x, z) => W/2 + ((x - e.x)*rx + (z - e.z)*rz)*k, Y = (x, z) => H*.6 - ((x - e.x)*fx + (z - e.z)*fz)*k;
+  g.clearRect(0, 0, W, H); g.lineWidth = 2*dpr; g.font = (12*dpr) + 'px sans-serif';
+  for (const sg of [-1, 1]){ g.beginPath(); g.strokeStyle = '#8b949e';
+    for (let s = L.s - 14; s <= L.s + 20; s += 2){ const q = WTRoad.at(P, s, sg*WTRoad.HW); s === L.s - 14 ? g.moveTo(X(q.x, q.z), Y(q.x, q.z)) : g.lineTo(X(q.x, q.z), Y(q.x, q.z)); } g.stroke(); }
+  g.beginPath(); g.strokeStyle = '#58a6ff'; for (let j = 0; j <= i && j < T.length; j++) j ? g.lineTo(X(T[j].x, T[j].z), Y(T[j].x, T[j].z)) : g.moveTo(X(T[j].x, T[j].z), Y(T[j].x, T[j].z)); g.stroke();
+  // car outline (centred on the centre of gravity, rough); body forward = (-sin psi, -cos psi), left = (-cos psi, sin psi)
+  const cf = [-Math.sin(e.psi), -Math.cos(e.psi)], cl = [-Math.cos(e.psi), Math.sin(e.psi)], hl = d.prof.L/2, hw = d.prof.w/2;
+  g.beginPath(); g.strokeStyle = '#e6edf3'; [[1,1],[1,-1],[-1,-1],[-1,1]].forEach((c, n) => { const x = e.x + cf[0]*hl*c[0] + cl[0]*hw*c[1], z = e.z + cf[1]*hl*c[0] + cl[1]*hw*c[1]; n ? g.lineTo(X(x, z), Y(x, z)) : g.moveTo(X(x, z), Y(x, z)); }); g.closePath(); g.stroke();
+  const kf = k*.004;   // pixels per newton, for circles and arrows
+  e.w.forEach((w, n) => {
+    const x = X(w[0], w[1]), y = Y(w[0], w[1]), pc = w[4] > 0 ? Math.hypot(w[2], w[3])/w[4] : 0, col = pc < .7 ? '#3fb950' : pc <= .97 ? '#d29922' : '#f85149';
+    const di = n < 2 ? e.delta : 0, bx = w[2]*Math.cos(di) - w[3]*Math.sin(di), by = w[2]*Math.sin(di) + w[3]*Math.cos(di);   // wheel frame to body frame (x forward, y left)
+    const wx = cf[0]*bx + cl[0]*by, wz = cf[1]*bx + cl[1]*by, ax = (wx*rx + wz*rz)*kf, ay = -(wx*fx + wz*fz)*kf;
+    g.strokeStyle = '#6e7681'; g.lineWidth = dpr; g.beginPath(); g.arc(x, y, Math.max(3, w[4]*kf), 0, 7); g.stroke();
+    g.strokeStyle = g.fillStyle = col; g.lineWidth = 3*dpr; g.beginPath(); g.moveTo(x, y); g.lineTo(x + ax, y + ay); g.stroke();
+    g.beginPath(); g.arc(x + ax, y + ay, 3*dpr, 0, 7); g.fill();
+    g.fillStyle = '#e6edf3'; g.fillText(Math.round(pc*100) + '%' + (w[5] ? ' locked' : ''), x + 6*dpr, y - 6*dpr);
+    if (XR.num) g.fillText(w[2] + ', ' + w[3] + ' of ' + w[4] + ' N', x + 6*dpr, y + 8*dpr);
+  });
+  g.fillStyle = '#e6edf3'; g.fillText(d.name + ' · ' + e.t.toFixed(2) + ' s · ' + Math.round(e.u*3.6) + ' km/h', 8*dpr, 16*dpr);
+  g.fillText('heading vs travel: ' + Math.round(Math.abs(e.slipDeg)) + '°', 8*dpr, 32*dpr);
+  g.fillText('steering wheel: ' + Math.round(e.steer) + '°', 8*dpr, 48*dpr);
+  g.fillStyle = '#3fb950'; g.fillRect(8*dpr, 56*dpr, 60*dpr*e.thr, 6*dpr); g.fillStyle = '#f85149'; g.fillRect(8*dpr, 66*dpr, 60*dpr*e.brk, 6*dpr);
+  g.fillStyle = '#e6edf3'; g.fillText('gas', 74*dpr, 63*dpr); g.fillText('brake', 74*dpr, 73*dpr);
+}
+function xrDrawAll(){
+  const d = XR.info; if (!d) return;
+  [['xrA', XR.a, d.na, 'xrCapA'], ['xrB', XR.b, d.nb, 'xrCapB']].forEach(([id, T, nm, cap]) => {
+    const cv = $(id), dpr = window.devicePixelRatio || 1, w = Math.round(cv.clientWidth*dpr), h = Math.round(cv.clientHeight*dpr);
+    if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+    xrDraw(cv, T, {P:d.P, prof:d.prof, name:nm + ' tires'}, XR.i); $(cap).textContent = nm + ' tires: ' + xrCaption(T, XR.i);
+  });
+}
+function xrSet(i){ XR.i = Math.max(0, Math.min(+$('xrScrub').max, i)); $('xrScrub').value = XR.i; xrDrawAll(); }
+function xrPlay(on){
+  XR.play = on; $('xrPlay').textContent = on ? 'Pause' : 'Play'; cancelAnimationFrame(XR.raf); XR.last = 0;
+  if (!on) return;
+  if (XR.i >= +$('xrScrub').max) xrSet(0);
+  const tick = t => {
+    if (!XR.play) return;
+    if (XR.last){ XR.acc += (t - XR.last)/1000*XR.sp/.02; const n = Math.floor(XR.acc); XR.acc -= n; if (n) xrSet(XR.i + n); }
+    XR.last = t; if (XR.i >= +$('xrScrub').max) return xrPlay(false); XR.raf = requestAnimationFrame(tick);
+  };
+  XR.raf = requestAnimationFrame(tick);
+}
+function xrClose(){ xrPlay(false); $('xrayOv').hidden = true; $('xrayBtn').focus(); }
+function xrOpen(){
+  try {
+    const d = XR.info = xrayData(); XR.a = d.a; XR.b = d.b; if (!d.a.length || !d.b.length) return;
+    $('xrScrub').max = Math.max(d.a.length, d.b.length) - 1; $('xrayOv').hidden = false; xrSet(0); $('xrPlay').focus();
+    if (!reduceMotion) xrPlay(true);
+  } catch (e){ console.warn('x-ray replay failed', e); $('xrayOv').hidden = true; }
+}
+try {
+  $('xrayBtn').addEventListener('click', xrOpen); $('xrClose').addEventListener('click', xrClose);
+  $('xrPlay').addEventListener('click', () => xrPlay(!XR.play));
+  $('xrScrub').addEventListener('input', e => { xrPlay(false); xrSet(+e.target.value); });
+  $('xrNum').addEventListener('change', e => { XR.num = e.target.checked; xrDrawAll(); });
+  document.querySelectorAll('#xrayOv [data-sp]').forEach(b => b.addEventListener('click', () => { XR.sp = +b.dataset.sp; document.querySelectorAll('#xrayOv [data-sp]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+  $('xrayOv').addEventListener('keydown', e => { if (e.key === 'Escape'){ e.preventDefault(); xrClose(); } e.stopPropagation(); });
+  window.addEventListener('resize', () => { if (!$('xrayOv').hidden) xrDrawAll(); });
+} catch (e){ console.warn('x-ray setup failed', e); }
 function showResult(){
   const sc = SCEN[S.idx], R = S.results[S.idx], ord = S.order[S.idx], cur = R[S.runTire];
   const rl = recent[S.idx]; const ri = rl.indexOf(S.runTire); if (ri >= 0) rl.splice(ri, 1); rl.push(S.runTire);

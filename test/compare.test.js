@@ -31,3 +31,11 @@ test('full braking from 60 km/h on packed snow: winter stops shorter than all-se
   assert.ok(w.summary.stopS < a.summary.stopS, w.summary.stopS + ' vs ' + a.summary.stopS);
   assert.ok(/Same steering/.test(C.describe(w.summary, a.summary, 'winter', 'all-season', sc)));
 });
+test('wheels option adds per-wheel data to every sample and leaves the rest unchanged', () => {
+  const inp = [[300, 0, 0, 0], [1, 10, 0, 1]], a = C.replay(D, base('winter', inp, 40)), b = C.replay(D, Object.assign(base('winter', inp, 40), {wheels:true}));
+  assert.strictEqual(b.tele.length, a.tele.length);
+  assert.ok(b.tele.length > 5 && a.tele.every(e => e.w === undefined));
+  assert.ok(b.tele.every(e => e.w.length === 4 && e.w.every(w => w.length === 7) && Number.isFinite(e.slipDeg)));
+  assert.deepStrictEqual(b.tele.map(e => e.u), a.tele.map(e => e.u));
+  assert.deepStrictEqual(b.summary, a.summary);
+});
