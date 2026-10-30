@@ -1115,7 +1115,7 @@ const postGeo = new THREE.CylinderGeometry(.045, .045, 1, 6); SHARED_GEO.add(pos
 function makeSign(parts, P, s, off, h){
   const g = new THREE.Group(); let y = h || 2.0, top = 0;
   parts.forEach(([mat, w, hh]) => { const pl = new THREE.Mesh(new THREE.PlaneGeometry(w, hh), mat); pl.position.set(0, y + hh/2, .03); g.add(pl); top = Math.max(top, y + hh); y += hh + .05; });
-  const post = new THREE.Mesh(postGeo, M.pole); post.scale.y = top; post.position.y = top/2; g.add(post);
+  const post = new THREE.Mesh(postGeo, M.pole); post.scale.y = top; post.position.set(0, top/2, -.06); g.add(post);   // behind the face (radius .045)
   place(g, P, s, off); return g;
 }
 
