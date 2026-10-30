@@ -2,6 +2,19 @@
 
 Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a session with "continue" (brief section 0.7).
 
+## Shad's decisions 2026-10-30 (override the brief where they differ; asked one at a time)
+1. Fresh session at every clean checkpoint: commit, write the next step here, Shad types /clear, /effort medium, "continue".
+2. Laptop watch: background `coord.js guard physics-v2` (wakes only for heat danger); no 30-min Monitor re-arms, no memory
+   alerts; `lock` before every heavy job still enforces memory and heat.
+3. Models: Sonnet does most remaining work in small, test-checked jobs (UI, X-ray, inputs, scenery, tests, docs); Opus for
+   physics-related work (hazard fairness, scenario physics) and for reviewing Sonnet's work.
+4. Reviews: ONE final Fable review, focused on hazard fairness, new scenarios and claims in the text. LinkedIn draft gets a
+   Sonnet read, not Fable.
+5. Updates: one short line per finished chunk; full report format only at phase ends and the finish.
+6. Priority: playable realism first: finish Phase 2 (fair hazards, camera, Teaching mode), then the overpass-spin scenario
+   and the same-steering comparison. X-ray replay, tilt/controllers and the other 3 scenarios after that.
+7. Usage: run until 98% weekly (replaces the brief's 90/95% wind-down). Both terminals keep running freely.
+
 ## Phase checklist (brief section 6)
 - [x] Phase 0, setup: section 0, section 9 kit + status line, index.html read once, plan, package.json with Playwright
 - [x] Phase 1, physics core, tires, vehicles, calibration (no game changes); first Fable check
@@ -88,7 +101,11 @@ Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true 
   Browser smoke (scripts/smoke-browser.js, 2026-10-30 00:07 UTC, under the lock): no console errors; crosswalk brakes
   40 -> 6 km/h in the window; icy hill holds on the brake until green, then pulls away. Headless software rendering
   runs the sim slower than real time (frame dt is capped at 50 ms), so speeds there are not physics numbers.
-  NEXT: steps 3-7 (collisions, outcomes, camera/visuals/sound, Teaching mode, hazard fairness, ?test=1 hooks + e2e).
+- Step 3 written (1d59446), syntax-checked, NOT yet run in a browser: oriented-rectangle collisions (SAT, car footprint at
+  real yaw; spinning lead car rotated), "Spun out" (>90 deg), "Slid into the next lane" (centre line crossed while
+  sliding; unsafe on two-way roads), off-road when all 4 wheels are past the edge on one side.
+  NEXT (fresh session): run scripts/smoke-browser.js under the lock; then step 6 hazard fairness (Opus), step 4 camera +
+  visuals + sound and step 5 Teaching mode + ESC light (Sonnet), step 7 ?test=1 hooks + e2e (Sonnet), then Phase 2 DONE.
 
 ## First Fable check (2026-10-29, after Phase 1 build): findings and answers
 | # | Finding | Outcome |
