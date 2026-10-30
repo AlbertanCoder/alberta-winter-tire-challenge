@@ -1,0 +1,31 @@
+Source: Alberta Transportation, Highway Geometric Design Guide, Chapter C Cross-Section Elements, February 2022
+URL: https://open.alberta.ca/dataset/2b5c861b-3de9-41f5-9d80-522f0c34550c/resource/64c09534-3b2c-4682-8b97-15ac5dbc759c/download/trans-highway-geometric-design-guide-chapter-c-2022-02.pdf
+Read 2026-10-30 (pdftotext -layout), lines 196-220 of the extract:
+
+                        Table C-1-1a Normal Cross-Slope Requirements for Various Surface Types
+
+                                     Surface Type         Minimum Cross-Slope (m/m)
+                             Portland Cement Concrete                     0.015
+                        Asphalt Concrete Pavement (ACP)                    0.02
+                             Asphalt Surface Treatment                     0.02
+                             Double Seal Coat (Asphalt)                    0.02
+                         Gravel or Crushed Stone Surface                   0.03
+
+C.1.2 Normal Cross-Slope
+
+The following is based on an ACP surface on a tangent roadway (refer to Figure C-1-2a):
+
+      On two-lane undivided highways, the pavement is normally crowned at the centreline and the
+          pavement slopes down to the shoulder edge at a rate of 0.02 m/m;
+
+      On four-lane undivided highways, and four-lane divided highways that have a narrow raised
+          median, the crown is normally located in the centre of the pavement (four-lane undivided) or
+          median (four-lane divided) and the pavement slopes down to the shoulder edge at 0.02 m/m;
+
+      On four-lane divided highways with wide depressed medians, the crown is normally located at the
+          centreline of each roadway with a cross-slope of 0.02 m/m down to each pavement edge. If the
+          roadway eventually requires expansion to six lanes, the two additional lanes may be added to the
+          median side or the outside depending on the median width, the ultimate configuration of the
+          roadway, the presence (or absence) of at-grade crossings, or other factors. The additional lanes
+          slope down away from the crown;
+
