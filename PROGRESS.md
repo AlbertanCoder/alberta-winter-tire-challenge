@@ -15,6 +15,23 @@ Brief: `docs/PHYSICS_V2_BRIEF.md`. Branch: `physics-v2`. To resume, start a sess
    and the same-steering comparison. X-ray replay, tilt/controllers and the other 3 scenarios after that.
 7. Usage: run until 98% weekly (replaces the brief's 90/95% wind-down). Both terminals keep running freely.
 
+## RESUME HERE (written 2026-10-30, before the weekly usage limit)
+Goal of the 2026-10-30 push: a WORKING DEMO on physics-v2 (Phase 2 closed + overpass-spin playable). Then the rest of the brief.
+State at last update: see the Session log and Phase 2 status below; the newest line wins.
+In order, for the next session:
+1. Read docs/PHYSICS_V2_BRIEF.md and this file. Run `node ~/claude-coord/coord.js check`; start `coord.js guard physics-v2` in the background.
+2. Hazard table: `tail ~/claude-coord/fairness-physics-v2.log`. If it says "wrote js/hazard-table.js", commit that file. If the runner
+   died, restart it detached (PowerShell: Start-Process bash.exe -ArgumentList "-l","/c/Users/SHADHUNTER/claude-coord/run-fairness-physics-v2.sh"
+   -WindowStyle Hidden); finished rows are cached in %TEMP%/wt-fair-<fingerprint>/. Any change to js/physics.js, tire-params.js,
+   vehicles.js, road.js, grip.js, fair.js, the stop scenarios or car lengths invalidates the table (test/fair.test.js checks it):
+   batch such changes, then rebuild once (about 1-2 h detached on this laptop at half duty).
+3. `npm test` (all of it, incl. test/fair.test.js), then the browser smoke (scripts/smoke-browser.js) and `npm run test:e2e` under the
+   lock, 1 worker. Check in the browser: front-wheel steer direction, body roll/pitch signs, the overpass-spin glance and passing car.
+4. Close Phase 2 (report format), then Shad's priority list (decision 6): same-steering comparison (4.7), then X-ray replay (4.8),
+   tilt/controllers (Phase 3), the other 3 scenarios, docs, media, final Fable review, finish (brief section 7).
+Laptop: heat is the limit (4 Node cores hit 95 C in a minute); heavy jobs take the lock, pause at 90 C twice, and alternate with the
+Kinan session (a hidden background Claude Code session on this laptop; it also runs builder copies). Rules: ~/claude-coord/README.md.
+
 ## Phase checklist (brief section 6)
 - [x] Phase 0, setup: section 0, section 9 kit + status line, index.html read once, plan, package.json with Playwright
 - [x] Phase 1, physics core, tires, vehicles, calibration (no game changes); first Fable check
