@@ -319,6 +319,7 @@ ol.refs li{overflow-wrap:anywhere}
     <span class="ctl-label" id="resKicker"></span>
     <h2 id="resTitle"></h2>
     <div class="runs" id="resRuns"></div>
+    <p class="hint" id="sameInputs" hidden></p>
     <div class="stack">
       <h3 style="font-size:.95rem" id="physTitle"></h3>
       <div class="bars" id="physBars"></div>
@@ -435,6 +436,7 @@ ol.refs li{overflow-wrap:anywhere}
 <script src="js/road.js"></script>
 <script src="js/wind.js"></script>
 <script src="js/fair.js"></script>
+<script src="js/compare.js"></script>
 <script src="js/hazard-table.js"></script>
 <script>
 (function(){
@@ -1810,9 +1812,9 @@ function prepRun(){
     weather:S.runWeather || 'clear', T:runTemp(sc, S.runWeather), arcs:arcsOf(sc.path), stopT:0, elkGap:0, elkSt:null, elkGo:null, spinT:-1, wd:0, trigS:null,
     finishS: sc.finishS || (sc.kind === 'curve' ? arcsOf(sc.path).slice(-1)[0].s1 + 40 : level.L - 25)};
   { const grip = WTGrip.make(WTTireParams.fixes);
-    run.sim = WTPhys.createSim({vehicle:WTVehicles[S.vehicle], vehicleKey:S.vehicle, grip, params:WTTireParams, env:WTRoad.roadEnv(sc, P, grip, run.weather, sc.startS, sc.wind ? WTWind.gust({kind:sc.wind, seed:1000 + S.idx, dir:[Math.cos(p.psi), -Math.sin(p.psi)]}) : null),
+    run.sim = WTPhys.createSim({vehicle:WTVehicles[S.vehicle], vehicleKey:S.vehicle, grip, params:WTTireParams, env:WTRoad.roadEnv(sc, P, grip, run.weather, sc.startS, run.wind = sc.wind ? WTWind.gust({kind:sc.wind, seed:1000 + S.idx, dir:[Math.cos(p.psi), -Math.sin(p.psi)]}) : null),
       tire:S.runTire, tread:S.runTread, T:run.T, abs:S.runAbs, esc:S.runEsc, tcs:S.runTcs, drive:S.runDrive, x:p.x, z:p.z, psi:p.psi, u:sc.startV/3.6});
-    run.acc = 0; run.inp = {steer:0, throttle:0, brake:0, gear:'D'}; run.cruiseV = null; run.rng = WTPhys.rng(1000 + S.idx); }
+    run.acc = 0; run.inp = {steer:0, throttle:0, brake:0, gear:'D'}; run.irec = WTCompare.recorder(); run.start = {x:p.x, z:p.z, psi:p.psi, u:sc.startV/3.6}; run.cruiseV = null; run.rng = WTPhys.rng(1000 + S.idx); }
   resetTraffic();
   const H = sc.hazard;
   if (level.ped){ level.pedOff = HW + 2.2; place(level.ped, P, H.s, level.pedOff); }
@@ -1867,6 +1869,7 @@ function step(dt){
     if (input.gas && !hold){ inp.throttle = GAS_INTERIM; r.cruiseV = null; }
     else if (!sc.noCruise && !input.brake && st.u > .5){ if (r.cruiseV == null) r.cruiseV = st.u; inp.throttle = clamp((r.cruiseV - st.u)*1.5, 0, 1); }
     else { inp.throttle = 0; r.cruiseV = null; }
+    r.irec.push(inp);
     sim.step(inp);
   }
   r.x = st.x; r.z = st.z; r.psi = st.psi; r.v = st.u; r.vis = 0;
@@ -2239,6 +2242,18 @@ function physCheck(){
 }
 const recent = SCEN.map(() => []);
 let replayBtn = null;
+// Replays this run's recorded inputs on the player's tire and the comparison tire (brief 4.7). Never breaks the results screen.
+function sameInputs(){
+  const el = $('sameInputs'); el.hidden = true;
+  try {
+    const r = run, sc = r.sc, st = r.start, comp = compOf(S.runTire);
+    const D = {Phys:WTPhys, Road:WTRoad, grip:WTGrip.make(WTTireParams.fixes), params:WTTireParams, vehicles:WTVehicles};
+    const go = tire => WTCompare.replay(D, {sc, P:r.P, weather:r.weather, T:r.T, vehicle:S.vehicle, drive:S.runDrive, tire, tread:S.runTread, abs:S.runAbs, esc:S.runEsc, tcs:S.runTcs,
+      x:st.x, z:st.z, psi:st.psi, u:st.u, wind:r.wind, inputs:r.irec.list, half:PROF[VEH[S.vehicle].type].L/2, maxT:60}).summary;
+    const nm = k => TIRE[k].name.toLowerCase();
+    el.textContent = WTCompare.describe(go(S.runTire), go(comp), nm(S.runTire), nm(comp), sc); el.hidden = false;
+  } catch (e){ console.warn('same-input replay failed', e); }
+}
 function showResult(){
   const sc = SCEN[S.idx], R = S.results[S.idx], ord = S.order[S.idx], cur = R[S.runTire];
   const rl = recent[S.idx]; const ri = rl.indexOf(S.runTire); if (ri >= 0) rl.splice(ri, 1); rl.push(S.runTire);
@@ -2250,6 +2265,7 @@ function showResult(){
     return '<div class="run" style="--c:var(' + TIRE[k].css + ')"><h3><span>' + TIRE[k].name + ' tires</span><span class="' + (o.safe ? 'good' : 'bad') + '">' + (o.safe ? 'Safe' : 'Not safe') + '</span></h3><span class="out">' + o.text + '.</span><span class="hint">' + extra + '</span></div>';
   }).join('');
   physCheck();
+  sameInputs();
   const b = $('resBtns'); b.innerHTML = '';
   const btn = (label, primary, fn) => { const x = document.createElement('button'); x.type = 'button'; x.className = 'btn' + (primary ? ' btn-primary' : ''); x.textContent = label; x.addEventListener('click', fn); b.appendChild(x); return x; };
   const comp = compOf(S.tire);
