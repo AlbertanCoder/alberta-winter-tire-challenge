@@ -1854,12 +1854,29 @@ function step(dt){
   r.gripUse = gu; r.slip = slide;
   r.tag = locked ? 'LOCKED' : st.abs ? 'ABS' : spin ? 'WHEELSPIN' : slide ? 'SLIDING' : (st.esc || st.tcs) ? 'ESC' : '';
   const loc = locate(r.P, r.x, r.z, r.hint); r.hint = loc.i; r.s = loc.s; r.off = loc.off;
-  if (Math.abs(r.off) > HW + 1.15 && !r.offroad){ r.offroad = true; r.offV = Math.abs(r.v); r.offSide = Math.sign(r.off); }
+  if (!r.offroad){ let side = 0; for (const w of st.w){ const o = locate(r.P, w.x, w.z, r.hint).off; if (Math.abs(o) > HW) side += Math.sign(o); }
+    if (Math.abs(side) === 4){ r.offroad = true; r.offV = Math.abs(r.v); r.offSide = Math.sign(side); } }
+  if (r.slip && r.off < 0) r.slidLane = true;   // crossed the centre line while sliding
 }
 
 /* Hazards, traffic and collisions */
 const ELK_IN = 2.4, ELK_OUT = 3.0, ELK_GAP = 2.5, ELK_PAUSE = 2.5, LEAD_GAP = 70, SPIN_YAW = 100*Math.PI/180, SPIN_T = 1.2;
 function overlap(a0, a1, b0, b1){ return a0 < b1 && b0 < a1; }
+// Oriented rectangles in road coordinates (s forward, off right): centre, half length along its heading, half width,
+// yaw relative to the road (positive = turned left, like psi). Forward in (s, off) is (cos, -sin); right is (sin, cos).
+function rect(s, o, hl, hw, yaw){ const c = Math.cos(yaw), n = Math.sin(yaw); return {s, o, hl, hw, f:[c, -n], r:[n, c]}; }
+function rectsHit(a, b){   // separating-axis test
+  const ds = b.s - a.s, dof = b.o - a.o;
+  for (const u of [a.f, a.r, b.f, b.r]){
+    const ra = a.hl*Math.abs(a.f[0]*u[0] + a.f[1]*u[1]) + a.hw*Math.abs(a.r[0]*u[0] + a.r[1]*u[1]);
+    const rb = b.hl*Math.abs(b.f[0]*u[0] + b.f[1]*u[1]) + b.hw*Math.abs(b.r[0]*u[0] + b.r[1]*u[1]);
+    if (Math.abs(ds*u[0] + dof*u[1]) > ra + rb) return false;
+  }
+  return true;
+}
+// The car's real footprint at its real yaw against a box that is square to the road
+function hitBox(s0, s1, o0, o1){ return rectsHit(run.cb, rect((s0 + s1)/2, (o0 + o1)/2, (s1 - s0)/2, (o1 - o0)/2, 0)); }
+function roadYaw(r){ const d = r.psi - r.P[r.hint].psi; return Math.atan2(Math.sin(d), Math.cos(d)); }
 // Trigger distance: a prepared driver (winter tires, new tread, ABS) on today's surface and temperature
 // measured along the whole stopping path from s0 (the car's front; defaults to where the hazard was triggered)
 function warnDist(v, s0){
@@ -1873,7 +1890,8 @@ function elkInRoad(){ const O = level.elkOff; for (let i = 0; i < O.length; i++)
 function crash(text, short){ return end({safe:false, text, short}, true); }
 function hazards(dt){
   const r = run, sc = r.sc, H = sc.hazard, P = PROF[VEH[S.vehicle].type], half = P.L/2, front = r.s + half;
-  const cs0 = r.s - half, cs1 = front, co0 = r.off - P.w/2, co1 = r.off + P.w/2, kmh = Math.round(Math.abs(r.v)*3.6);
+  const kmh = Math.round(Math.abs(r.v)*3.6);
+  r.cb = rect(r.s, r.off, half, P.w/2, roadYaw(r));
   // Oncoming traffic
   for (let i = 0; i < level.traffic.length; i++){
     const t = level.traffic[i];
@@ -1881,7 +1899,7 @@ function hazards(dt){
     t.s -= t.v*dt;
     if (t.s < r.s - 70){ const ns = r.s + 260 + r.rng()*90; if (ns < level.L - 6){ t.s = ns; } else { t.obj.visible = false; continue; } }
     place(t.obj, r.P, t.s, t.off, Math.PI);
-    if (overlap(cs0, cs1, t.s - t.len/2, t.s + t.len/2) && overlap(co0, co1, t.off - t.w/2, t.off + t.w/2)) crash('Collided with an oncoming vehicle. Closing speed ' + Math.round((Math.abs(r.v) + t.v)*3.6) + ' km/h', 'Head-on collision');
+    if (hitBox(t.s - t.len/2, t.s + t.len/2, t.off - t.w/2, t.off + t.w/2)) crash('Collided with an oncoming vehicle. Closing speed ' + Math.round((Math.abs(r.v) + t.v)*3.6) + ' km/h', 'Head-on collision');
   }
   if (r.phase !== 'drive') return;
   if (r.off < -.2 && !r.wasLeft && !sc.oneway){ r.crossings++; } r.wasLeft = r.off < -.2;
@@ -1894,8 +1912,8 @@ function hazards(dt){
     const a = level.ahead, b = level.behind;
     if (!r.green && r.t > 1.5){ r.green = true; setSignal('g'); banner('Green light. Go!'); }
     if (r.green){ a.v = Math.min(5, a.v + .6*dt); a.s += a.v*dt; place(a.obj, r.P, a.s, LANE); }
-    if (overlap(cs0, cs1, b.s - PROF.van.L/2, b.s + PROF.van.L/2) && overlap(co0, co1, LANE - 1, LANE + 1)) crash('Slid back into the car behind you at ' + kmh + ' km/h', 'Slid back into a car');
-    if (overlap(cs0, cs1, a.s - PROF.sedan.L/2, a.s + PROF.sedan.L/2) && overlap(co0, co1, LANE - 1, LANE + 1)) crash('Bumped the car ahead at ' + kmh + ' km/h', 'Bumped the car ahead');
+    if (hitBox(b.s - PROF.van.L/2, b.s + PROF.van.L/2, LANE - 1, LANE + 1)) crash('Slid back into the car behind you at ' + kmh + ' km/h', 'Slid back into a car');
+    if (hitBox(a.s - PROF.sedan.L/2, a.s + PROF.sedan.L/2, LANE - 1, LANE + 1)) crash('Bumped the car ahead at ' + kmh + ' km/h', 'Bumped the car ahead');
     return;
   }
   if (!H) return;
@@ -1915,18 +1933,18 @@ function hazards(dt){
     const stoppedOrPast = Math.abs(r.v) < .05 || front > H.s + 2;
     const target = stoppedOrPast ? -HW - 3 : LANE + .6;
     if (level.pedOff > target){ level.pedOff = Math.max(target, level.pedOff - 1.3*dt); place(level.ped, r.P, H.s, level.pedOff); }
-    if (level.pedOff > -HW - 1.5 && overlap(cs0, cs1, H.s - .45, H.s + .45) && overlap(co0, co1, level.pedOff - 1.45, level.pedOff + .3)) return crash('Hit the pedestrian at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
+    if (level.pedOff > -HW - 1.5 && hitBox(H.s - .45, H.s + .45, level.pedOff - 1.45, level.pedOff + .3)) return crash('Hit the pedestrian at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
   }
   if (H.type === 'deer' && r.trig){
     r.deerT += dt;
     const target = Math.abs(r.v) < .05 || front > H.s + 2 ? -HW - 5 : LANE;
     if (level.deerOff > target){ level.deerOff = Math.max(target, level.deerOff - 3.2*dt); place(level.deer, r.P, H.s, level.deerOff); }
-    if (level.deerOff > -HW - 2 && overlap(cs0, cs1, H.s - .3, H.s + .3) && overlap(co0, co1, level.deerOff - 1, level.deerOff + .7)) return crash('Hit the deer at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
+    if (level.deerOff > -HW - 2 && hitBox(H.s - .3, H.s + .3, level.deerOff - 1, level.deerOff + .7)) return crash('Hit the deer at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
   }
   if (H.type === 'moose' && r.trig && level.moose){
     const target = Math.abs(r.v) < .05 || front > H.s + 2 ? -HW - 5 : LANE;
     if (level.mooseOff > target){ level.mooseOff = Math.max(target, level.mooseOff - 1.2*dt); place(level.moose, r.P, H.s, level.mooseOff); }
-    if (level.mooseOff > -HW - 2 && overlap(cs0, cs1, H.s - .4, H.s + .4) && overlap(co0, co1, level.mooseOff - 1.5, level.mooseOff + 1.1)) return crash('Hit the moose at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
+    if (level.mooseOff > -HW - 2 && hitBox(H.s - .4, H.s + .4, level.mooseOff - 1.5, level.mooseOff + 1.1)) return crash('Hit the moose at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
   }
   if (H.type === 'elk' && r.trig && level.elk && r.elkSt){
     // Each elk: 0 waiting, 1 walking into your lane, 2 paused there, 3 finishing the crossing
@@ -1940,7 +1958,7 @@ function hazards(dt){
       else if (st === 3 && o > -HW - 5) o = Math.max(-HW - 5, o - ELK_OUT*dt);
       r.elkSt[i] = st;
       if (o !== O[i]){ O[i] = o; place(E[i], r.P, H.s, o); }
-      if (o > -HW - 2 && overlap(cs0, cs1, H.s - .35, H.s + .35) && overlap(co0, co1, o - 1.2, o + .8)) return crash('Hit an elk at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
+      if (o > -HW - 2 && hitBox(H.s - .35, H.s + .35, o - 1.2, o + .8)) return crash('Hit an elk at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
     }
   }
   if (H.type === 'spin' && level.lead){
@@ -1955,7 +1973,7 @@ function hazards(dt){
       r.spinT += dt; L.v = L.s > level.L - 8 ? 0 : Math.max(0, L.v - Math.max(aL, aStop)*dt); L.yaw = SPIN_YAW*smooth(0, SPIN_T, r.spinT); L.off += (0 - L.off)*Math.min(1, dt*2); leadExt(L);
     }
     if (L.v > 0 || r.spinT < SPIN_T + .1){ L.s += L.v*dt; place(L.obj, r.P, L.s, L.off, L.yaw); }
-    if (overlap(cs0, cs1, L.s - L.hs, L.s + L.hs) && overlap(co0, co1, L.off - L.ho, L.off + L.ho)){
+    if (rectsHit(r.cb, rect(L.s, L.off, L.len/2, L.w/2, L.yaw))){
       const ck = Math.round(Math.max(0, Math.abs(r.v) - L.v)*3.6);
       return crash((r.spinT < 0 ? 'Rear-ended the car ahead at ' : 'Hit the spun-out car at ') + ck + ' km/h', 'Hit at ' + ck + ' km/h');
     }
@@ -1967,11 +1985,11 @@ function hazards(dt){
     if (r.crossLight == null && front >= H.s) r.crossLight = r.light;
     for (let i = 0; i < 2; i++){
       const cx = r.crossX[i], cl = i ? PROF.sedan.L : PROF.suv.L;
-      if (overlap(cs0, cs1, H.s + 4.4 - 1, H.s + 4.4 + 1) && overlap(co0, co1, cx - cl/2, cx + cl/2)) return crash('Slid into cross traffic at ' + kmh + ' km/h', 'Crash in the intersection');
+      if (hitBox(H.s + 4.4 - 1, H.s + 4.4 + 1, cx - cl/2, cx + cl/2)) return crash('Slid into cross traffic at ' + kmh + ' km/h', 'Crash in the intersection');
     }
   }
   if (H.type === 'car' || H.type === 'car2'){
-    for (const c of level.stopped) if (r.trig && overlap(cs0, cs1, c.s - c.len/2, c.s + c.len/2) && overlap(co0, co1, c.off - c.w/2, c.off + c.w/2)) return crash('Hit the stopped ' + (H.type === 'car2' ? 'traffic' : 'car') + ' at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
+    for (const c of level.stopped) if (r.trig && hitBox(c.s - c.len/2, c.s + c.len/2, c.off - c.w/2, c.off + c.w/2)) return crash('Hit the stopped ' + (H.type === 'car2' ? 'traffic' : 'car') + ' at ' + kmh + ' km/h', 'Hit at ' + kmh + ' km/h');
   }
 }
 function checkEnd(dt){
@@ -1983,6 +2001,8 @@ function checkEnd(dt){
     }
     return;
   }
+  const yawDeg = Math.abs(roadYaw(r))*180/Math.PI;
+  if (yawDeg > 90) return end({safe:false, text:'Spun out: the car turned ' + Math.round(yawDeg) + '° from the road at ' + Math.round(Math.hypot(r.sim.st.u, r.sim.st.v)*3.6) + ' km/h', short:'Spun out'});
   if (r.t > 150) return end({safe:false, text:'Ran out of time', short:'Timed out'});
   if (sc.kind === 'hill'){
     if (r.s >= r.finishS) return end({safe:true, text:'Made it to the top in ' + fmt(r.t - 1.5) + ' s', short:'Made it up'});
@@ -2036,6 +2056,7 @@ function stillCheck(dt, stopped){ if (stopped){ run.stillT += dt; if (run.stillT
 function end(outcome, impact){
   if (run.phase !== 'drive') return;
   if (impact) run.v = 0;
+  if (outcome.safe && run.slidLane && run.sc.kind === 'stop') Object.assign(outcome, run.sc.oneway ? {text:outcome.text + ', but slid into the next lane on the way', short:'Slid into the next lane'} : {safe:false, text:outcome.text + ', but slid into the oncoming lane on the way', short:'Slid into the next lane'});
   run.outcome = outcome; run.phase = 'ending'; run.endWait = 1.5;
   Object.assign(outcome, {rt:run.rt, vTrig:run.vTrig, D:run.D, entryV:run.entryV, curveMax:run.curveMax, t:run.t, drive:S.runDrive, abs:S.runAbs, esc:S.runEsc, tcs:S.runTcs, tread:S.runTread, weather:S.runWeather, tod:S.runTod});
   S.results[S.idx][S.runTire] = outcome;
