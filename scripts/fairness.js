@@ -48,7 +48,7 @@ function build(shard){
       const r = F.Fair.solveWarn(D, sc, c.P, Object.assign({}, c.o, {v}), c.Hs, guess != null ? guess : F.legacyWarn(c, v));
       // Can't stop at all (e.g. glaze on a 6% downhill: gravity beats braking grip): the hazard appears as early as the
       // solver allows, 1 km before the road starts, so it is visible from the start (the v1 game capped this case too)
-      if (r.width === Infinity && r.err > 0 && r.D >= c.Hs + 999){ noStop.push(sc.id + '|' + veh + '|' + w + '@' + v); r.err = 0; r.width = 0; }
+      if (r.width === Infinity && r.err > 0){ noStop.push(sc.id + "|" + veh + "|" + w + "@" + v); r.D = c.Hs + 1000; r.err = 0; r.width = 0; }   // no trigger point lets it stop
       if (Math.abs(r.err) > .05 && !(r.width < .02)) throw new Error('no converged warning distance: ' + JSON.stringify({id:sc.id, veh, w, v, r}));
       worst = Math.max(worst, Math.min(Math.abs(r.err), r.width)); n++;
       part[v] = Math.round(r.D*100)/100;
