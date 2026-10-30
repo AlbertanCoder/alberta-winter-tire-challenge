@@ -13,10 +13,14 @@ const {chromium} = require('playwright');
   await page.waitForTimeout(1500);
   const spd = () => page.$eval('#spd', e => e.textContent);
   for (const [name, idx, plan] of [['Residential crosswalk (brake test)', 0, 'brake'], ['Icy hill start', 3, 'gas']]){
-    await page.click('#startBtn').catch(() => {});
-    await page.evaluate(() => document.getElementById('ovMap').hidden || null);
-    const cards = await page.$$('.scen'); await cards[idx].click();
-    await page.click('#goBtn'); await page.waitForTimeout(1500);
+    // DOM clicks (the 3D canvas and overlays make Playwright's visibility checks unreliable here); log each step
+    const vis = () => page.evaluate(() => ['ovTitle','ovMap','ovIntro','ovResult'].filter(id => !document.getElementById(id).hidden).join(','));
+    console.log('  overlays before:', await vis());
+    await page.evaluate(() => { if (!document.getElementById('ovTitle').hidden) document.getElementById('startBtn').click(); });
+    await page.evaluate(i => document.querySelectorAll('.scen')[i].click(), idx);
+    console.log('  after picking:', await vis());
+    await page.evaluate(() => document.getElementById('goBtn').click()); await page.waitForTimeout(1500);
+    console.log('  driving:', (await vis()) || '(no overlay)');
     const s0 = await spd();
     if (plan === 'brake'){ await page.keyboard.down('Space'); await page.waitForTimeout(4000); await page.keyboard.up('Space'); }
     else { await page.waitForTimeout(1500); await page.keyboard.down('ArrowUp'); await page.waitForTimeout(6000); await page.keyboard.up('ArrowUp'); }

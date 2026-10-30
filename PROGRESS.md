@@ -85,7 +85,10 @@ Simplifications to list in PHYSICS.md / Honest limits: ABS/ESC/TCS use the true 
 - Step 2 written, NOT yet run in a browser: index.html loads the 5 physics scripts; step() runs WTPhys on a 1 ms
   accumulator; interim input mapping (v1 steering cap, GAS = 0.4 throttle, v1-style hold-speed cruise until Phase 3);
   seeded traffic respawn; ESC and traction-control toggles in run settings. node --check on the game script: OK.
-  NEXT: open it headless (Playwright, under the lock, 1 worker) and fix any console errors; then steps 3-7.
+  Browser smoke (scripts/smoke-browser.js, 2026-10-30 00:07 UTC, under the lock): no console errors; crosswalk brakes
+  40 -> 6 km/h in the window; icy hill holds on the brake until green, then pulls away. Headless software rendering
+  runs the sim slower than real time (frame dt is capped at 50 ms), so speeds there are not physics numbers.
+  NEXT: steps 3-7 (collisions, outcomes, camera/visuals/sound, Teaching mode, hazard fairness, ?test=1 hooks + e2e).
 
 ## First Fable check (2026-10-29, after Phase 1 build): findings and answers
 | # | Finding | Outcome |
