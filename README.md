@@ -2,7 +2,26 @@
 
 A free 3D driving game about winter tires in Alberta. You drive fourteen real Alberta winter situations on the tires you have now, then drive the same ones again on winter tires and compare.
 
-**Play it:** open `index.html` in a browser, or use the GitHub Pages link once Pages is turned on for this repo.
+**Play it:** https://albertancoder.github.io/alberta-winter-tire-challenge/ (or open `index.html` in a browser).
+
+## New: physics update (October 2026, work in progress)
+
+It looks almost the same as before, but underneath it's a different game. The first version faked the driving: the car could only go where it was pointed and stopped in a straight line. Now:
+
+- Each of the four tires has its own grip and can slide or lock on its own, so the car can fishtail, overcorrect and spin like on real ice.
+- The physics runs 1,000 times a second, with grip calibrated to published tire tests ([PHYSICS.md](PHYSICS.md), [docs/CALIBRATION.md](docs/CALIBRATION.md)).
+- ABS and stability control work like in a real car, and you can switch them off.
+- Hazards appear exactly where a driver on winter tires could just stop, worked out with the full simulation, so every comparison is fair.
+- New scenario: a spin on black ice under an Edmonton freeway overpass. After a run, an X-ray replay shows what each tire was doing.
+
+**Video:** [media/ice-stop.mp4](media/ice-stop.mp4): same car, same speed, same braking at the same moment, only the tires changed. Winter tires stop 2.4 m behind the stopped traffic; all-season tires hit it at about 10 km/h.
+
+| | |
+|---|---|
+| ![All-season tires on the shaded ice under the overpass](media/overpass-ice-allseason.png) | ![Results: same steering, same pedals, only the tires changed](media/overpass-results.png) |
+| ![The new overpass spin scenario](media/overspin-glance-winter.png) | ![X-ray replay: grip used at each tire](media/overpass-xray.png) |
+
+It's still a model, not a perfect copy of real driving, and it's being improved. The original version's pictures and video are below.
 
 ![Crosswalk on packed snow](media/crosswalk.jpg)
 
